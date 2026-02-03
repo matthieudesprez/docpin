@@ -1,0 +1,112 @@
+# GrippyDoc vs Swimm.io
+
+A comparison of GrippyDoc with [Swimm.io](https://swimm.io), a popular documentation platform, and what would be needed to fully replace it.
+
+## Feature Comparison
+
+| Feature | GrippyDoc | Swimm.io |
+|---------|:---------:|:--------:|
+| Detect code/doc drift | Yes | Yes |
+| CI/CD integration | Yes | Yes |
+| Free & open source | Yes | No (freemium) |
+| Self-hosted | Yes | No (cloud) |
+| Zero dependencies | Yes | No |
+| Rich editor | No | Yes |
+| IDE plugins (VSCode, JetBrains) | No | Yes |
+| Shows *what* changed in code | No | Yes |
+| Auto-suggests doc updates | No | Yes |
+| Doc search & discovery | No | Yes |
+| Team collaboration | No | Yes |
+| Tutorials / walkthroughs | No | Yes |
+| Auto-generated docs | No | Yes |
+| Git-based storage | Yes | Yes |
+| Works offline | Yes | Partial |
+
+## When to Use GrippyDoc
+
+GrippyDoc is a good fit if you:
+
+- Want a **simple, lightweight** solution
+- Only need **drift detection** (not a full doc platform)
+- Prefer **self-hosted** and **open source** tools
+- Want **zero dependencies** and easy CI integration
+- Are comfortable writing docs in plain Markdown
+
+## When to Use Swimm
+
+Swimm is a better fit if you:
+
+- Need a **rich editing experience** with IDE integration
+- Want **auto-generated documentation** from code
+- Need **team collaboration** features
+- Want to see **exactly what changed** in code (not just that it changed)
+- Need **tutorials and walkthroughs** with step-by-step code references
+- Prefer a managed **cloud platform**
+
+## What's Missing to Replace Swimm
+
+To fully replace Swimm.io, GrippyDoc would need:
+
+### High Priority
+
+1. **Diff Display**
+   - Show what changed in the code block, not just "it changed"
+   - Display a side-by-side or unified diff
+   - Help doc authors understand what needs updating
+
+2. **Link Validation**
+   - Verify all `[grip:id]` references point to existing blocks
+   - Catch orphaned links (block was deleted)
+   - Catch typos in grip IDs
+
+3. **Watch Mode**
+   - `grippydoc watch` for local development
+   - Live feedback as you edit code
+
+### Medium Priority
+
+4. **IDE Extensions**
+   - VSCode extension to insert grip tags easily
+   - Highlight grip tags and links
+   - Jump-to-definition from `[grip:id]` to code block
+
+5. **Smarter Hashing**
+   - Ignore whitespace-only changes
+   - Ignore comment changes within blocks
+   - Configurable sensitivity levels
+
+6. **Better Output Formats**
+   - JSON output for tooling integration
+   - GitHub Actions annotations
+   - PR comments via GitHub API
+
+### Lower Priority
+
+7. **Doc Generation**
+   - Auto-generate stub documentation for unlinked blocks
+   - List all grip blocks with their locations
+
+8. **Multi-repo Support**
+   - Track blocks across multiple repositories
+   - Monorepo support with scoped manifests
+
+9. **Web UI**
+   - Simple dashboard showing doc health
+   - Browse all grip links and their status
+
+## Roadmap
+
+GrippyDoc aims to stay **simple and focused**. The goal is not to replicate all of Swimm's features, but to provide a solid open-source foundation for documentation drift detection.
+
+Planned additions:
+- [ ] Diff display in check output
+- [ ] Link validation (orphan detection)
+- [ ] JSON output format
+- [ ] VSCode extension
+- [ ] Watch mode
+
+Not planned (use Swimm if you need these):
+- Rich editing UI
+- Cloud platform
+- Team collaboration
+- Auto-generated documentation

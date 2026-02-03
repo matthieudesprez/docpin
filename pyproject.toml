@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grippydoc"
+version = "0.1.0"
+description = "Prevent documentation drift by linking Markdown to code blocks"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+authors = [
+    {name = "GrippyDoc Contributors"}
+]
+keywords = ["documentation", "cli", "developer-tools", "markdown", "drift"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+]
+
+[project.scripts]
+grippydoc = "grippydoc.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/grippydoc/grippydoc"
+Repository = "https://github.com/grippydoc/grippydoc"
+
+[tool.setuptools.packages.find]
+where = ["."]
