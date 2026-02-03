@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 from dataclasses import dataclass, asdict
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .resolver import CodeReference
 
@@ -92,7 +92,7 @@ def save_manifest(root: Path, manifest: Manifest) -> None:
 
 def record_references(root: Path, refs: list[CodeReference]) -> Manifest:
     """Record code references to the manifest."""
-    timestamp = datetime.utcnow().isoformat() + "Z"
+    timestamp = datetime.now(timezone.utc).isoformat()
 
     entries = {}
     for ref in refs:

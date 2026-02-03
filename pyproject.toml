@@ -28,6 +28,9 @@ classifiers = [
     "Topic :: Software Development :: Documentation",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
 [project.scripts]
 grippydoc = "grippydoc.cli:main"
 
