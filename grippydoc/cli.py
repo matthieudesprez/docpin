@@ -5,12 +5,13 @@ import sys
 from pathlib import Path
 
 from . import __version__
-from .parser import scan_directory
+from .scanner import scan_markdown_files
+from .resolver import resolve_reference
 from .manifest import (
     init_grippydoc,
     load_manifest,
-    record_blocks,
-    check_blocks,
+    record_references,
+    check_references,
     get_grippydoc_dir,
 )
 
@@ -34,31 +35,61 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 
 def cmd_record(args: argparse.Namespace) -> int:
-    """Record code block hashes to the manifest."""
+    """Record code reference hashes to the manifest."""
     root = Path(args.path).resolve()
 
     if not get_grippydoc_dir(root).exists():
         print("Error: GrippyDoc not initialized. Run 'grippydoc init' first.", file=sys.stderr)
         return 1
 
-    blocks = scan_directory(root)
+    # Find all grip references in markdown files
+    doc_refs = scan_markdown_files(root)
 
-    if not blocks:
-        print("No grip-tagged code blocks found.")
+    if not doc_refs:
+        print("No grip references found in markdown files.")
         return 0
 
-    manifest = record_blocks(root, blocks)
+    # Resolve each reference to code
+    resolved = []
+    errors = []
 
-    print(f"Recorded {len(manifest.entries)} code block(s):")
+    for doc_ref in doc_refs:
+        code_ref = resolve_reference(doc_ref.reference, root)
+        if code_ref:
+            resolved.append(code_ref)
+        else:
+            errors.append(doc_ref)
+
+    if errors:
+        print(f"Warning: {len(errors)} reference(s) could not be resolved:")
+        for err in errors:
+            rel_doc = Path(err.doc_file).relative_to(root)
+            print(f"  {rel_doc}:{err.line_number} -> [grip:{err.reference}]")
+        print()
+
+    if not resolved:
+        print("No valid references to record.")
+        return 1 if errors else 0
+
+    # Record to manifest
+    manifest = record_references(root, resolved)
+
+    print(f"Recorded {len(manifest.entries)} reference(s):")
     for entry in manifest.entries.values():
-        rel_path = Path(entry.file_path).relative_to(root)
-        print(f"  [{entry.id}] {rel_path}:{entry.start_line}-{entry.end_line}")
+        ref_display = entry.reference
+        if entry.ref_type == "file":
+            ref_display = f"{entry.file_path} (whole file)"
+        elif entry.ref_type == "line":
+            ref_display = f"{entry.file_path}:{entry.start_line}"
+        elif entry.ref_type == "range":
+            ref_display = f"{entry.file_path}:{entry.start_line}-{entry.end_line}"
+        print(f"  [grip:{ref_display}]")
 
     return 0
 
 
 def cmd_check(args: argparse.Namespace) -> int:
-    """Check for stale documentation links."""
+    """Check for stale documentation references."""
     root = Path(args.path).resolve()
 
     manifest = load_manifest(root)
@@ -66,55 +97,67 @@ def cmd_check(args: argparse.Namespace) -> int:
         print("Error: No manifest found. Run 'grippydoc record' first.", file=sys.stderr)
         return 1
 
-    blocks = scan_directory(root)
-    stale_links = check_blocks(root, blocks, manifest)
+    stale, broken = check_references(root, manifest)
 
-    if not stale_links:
-        print("All documentation links are up to date.")
-        return 0
+    has_issues = False
 
-    print(f"Found {len(stale_links)} stale documentation link(s):\n")
+    if broken:
+        has_issues = True
+        print(f"Found {len(broken)} broken reference(s):\n")
+        for ref in broken:
+            rel_doc = Path(ref.doc_file).relative_to(root)
+            print(f"  [grip:{ref.reference}]")
+            print(f"    Location: {rel_doc}:{ref.doc_line}")
+            print(f"    Error: {ref.reason}")
+            print()
 
-    for link in stale_links:
-        doc_rel = Path(link.doc_file).relative_to(root)
-        code_rel = Path(link.code_file).relative_to(root)
-        print(f"  [{link.block_id}]")
-        print(f"    Documentation: {doc_rel}:{link.doc_line}")
-        print(f"    Code changed:  {code_rel}")
-        print(f"    Hash: {link.old_hash[:8]}... -> {link.new_hash[:8]}...")
-        print()
+    if stale:
+        has_issues = True
+        print(f"Found {len(stale)} stale reference(s):\n")
+        for ref in stale:
+            rel_doc = Path(ref.doc_file).relative_to(root)
+            print(f"  [grip:{ref.reference}]")
+            print(f"    Location: {rel_doc}:{ref.doc_line}")
+            print(f"    Hash: {ref.old_hash[:8]}... -> {ref.new_hash[:8]}...")
+            print()
 
-    print("Run 'grippydoc record' after updating documentation to clear this warning.")
-    return 1
+    if has_issues:
+        print("Run 'grippydoc record' after updating documentation to clear warnings.")
+        return 1
+
+    print("All documentation references are up to date.")
+    return 0
 
 
 def cmd_status(args: argparse.Namespace) -> int:
-    """Show the status of tracked code blocks."""
+    """Show the status of tracked references."""
     root = Path(args.path).resolve()
 
     manifest = load_manifest(root)
     if manifest is None:
-        print("GrippyDoc not initialized or no blocks recorded.")
+        print("GrippyDoc not initialized or no references recorded.")
         return 0
 
-    blocks = scan_directory(root)
-    block_map = {b.id: b for b in blocks}
-
-    print(f"Tracking {len(manifest.entries)} code block(s):\n")
+    print(f"Tracking {len(manifest.entries)} reference(s):\n")
 
     for entry in manifest.entries.values():
-        rel_path = Path(entry.file_path).relative_to(root)
-        current = block_map.get(entry.id)
+        # Check current status
+        code_ref = resolve_reference(entry.reference, root)
 
-        if current is None:
+        if code_ref is None:
             status = "MISSING"
-        elif current.hash != entry.hash:
+        elif code_ref.hash != entry.hash:
             status = "CHANGED"
         else:
             status = "OK"
 
-        print(f"  [{entry.id}] {status}")
-        print(f"    File: {rel_path}:{entry.start_line}-{entry.end_line}")
+        print(f"  [{status}] {entry.reference}")
+        if entry.ref_type == "range":
+            print(f"         {entry.file_path}:{entry.start_line}-{entry.end_line}")
+        elif entry.ref_type == "line":
+            print(f"         {entry.file_path}:{entry.start_line}")
+        else:
+            print(f"         {entry.file_path}")
         print()
 
     return 0
@@ -124,7 +167,7 @@ def main() -> int:
     """Main entry point for the CLI."""
     parser = argparse.ArgumentParser(
         prog="grippydoc",
-        description="Prevent documentation drift by linking Markdown to code blocks.",
+        description="Prevent documentation drift by linking Markdown to code.",
     )
     parser.add_argument(
         "--version",
@@ -149,7 +192,7 @@ def main() -> int:
     # record command
     record_parser = subparsers.add_parser(
         "record",
-        help="Record code block hashes to the manifest",
+        help="Record code reference hashes to the manifest",
     )
     record_parser.add_argument(
         "path",
@@ -161,7 +204,7 @@ def main() -> int:
     # check command
     check_parser = subparsers.add_parser(
         "check",
-        help="Check for stale documentation links",
+        help="Check for stale documentation references",
     )
     check_parser.add_argument(
         "path",
@@ -173,7 +216,7 @@ def main() -> int:
     # status command
     status_parser = subparsers.add_parser(
         "status",
-        help="Show status of tracked code blocks",
+        help="Show status of tracked references",
     )
     status_parser.add_argument(
         "path",

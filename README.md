@@ -1,8 +1,8 @@
 # GrippyDoc
 
-Prevent documentation drift by linking Markdown files to specific code blocks.
+Prevent documentation drift by linking Markdown files to specific code.
 
-GrippyDoc tracks tagged code blocks in your source files and alerts you when the code changes but the documentation hasn't been updated. Perfect for CI/CD pipelines to catch stale docs before they reach production.
+GrippyDoc tracks code references in your documentation and alerts you when the code changes but the docs haven't been updated. Perfect for CI/CD pipelines to catch stale docs before they reach production.
 
 *Keep your docs gripping the code.*
 
@@ -28,79 +28,98 @@ pip install -e .
 grippydoc init
 ```
 
-This creates a `.grippydoc/` directory with configuration and manifest files.
+### 2. Reference Code in Your Docs
 
-### 2. Tag Your Code Blocks
-
-Add grip tags around important code sections:
-
-**Python:**
-```python
-# <grip id="auth-logic">
-def authenticate(username, password):
-    user = db.find_user(username)
-    if user and verify_password(password, user.password_hash):
-        return create_session(user)
-    return None
-# </grip>
-```
-
-**JavaScript/TypeScript:**
-```javascript
-// <grip id="api-endpoint">
-app.post('/api/users', async (req, res) => {
-    const user = await createUser(req.body);
-    res.json(user);
-});
-// </grip>
-```
-
-**SQL:**
-```sql
--- <grip id="user-schema">
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
--- </grip>
-```
-
-### 3. Link Documentation to Code
-
-In your Markdown files, reference the tagged blocks:
+In your Markdown files, add grip references to code:
 
 ```markdown
 # Authentication
 
-This section explains how user authentication works.
+The login function handles user authentication:
 
-[grip:auth-logic]
+[grip:src/auth.py:10-25]
 
-The `authenticate` function verifies credentials and creates a session.
+For the full module, see:
+
+[grip:src/auth.py]
 ```
 
-### 4. Record the Current State
+### 3. Record the Current State
 
 ```bash
 grippydoc record
 ```
 
-This scans your codebase and saves hashes of all tagged blocks.
-
-### 5. Check for Drift
+### 4. Check for Drift
 
 ```bash
 grippydoc check
 ```
 
-If any tagged code has changed since the last `record`, GrippyDoc will:
-- List all stale documentation links
+If any referenced code has changed since the last `record`, GrippyDoc will:
+- List all stale documentation references
 - Exit with code 1 (useful for CI/CD)
 
-## CI/CD Integration
+## Reference Syntax
 
-Add GrippyDoc to your CI pipeline to catch documentation drift:
+| Syntax | Description |
+|--------|-------------|
+| `[grip:path/to/file.py]` | Track entire file |
+| `[grip:path/to/file.py:42]` | Track single line |
+| `[grip:path/to/file.py:42-58]` | Track line range |
+
+## How It Works
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                           SETUP PHASE                               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   docs/auth.md                        src/auth.py                   │
+│  ┌────────────────────────┐         ┌────────────────────────┐      │
+│  │ ## Login Flow          │         │ 10: def login(user):   │      │
+│  │                        │         │ 11:     validate(user) │      │
+│  │ [grip:src/auth.py:10-15] ───────▶│ 12:     token = gen()  │      │
+│  │                        │         │ 13:     return token   │      │
+│  │ The login function...  │         │ ...                    │      │
+│  └────────────────────────┘         └────────────────────────┘      │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+                          ┌──────────────────┐
+                          │ grippydoc record │
+                          └────────┬─────────┘
+                                   │ hashes lines 10-15
+                                   ▼
+                     ┌─────────────────────────────┐
+                     │  .grippydoc/manifest.json   │
+                     │  ┌───────────────────────┐  │
+                     │  │ "src/auth.py:10-15":  │  │
+                     │  │   "hash": "a1b2c3..." │  │
+                     │  └───────────────────────┘  │
+                     └─────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                       CHECK PHASE (CI/CD)                           │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   Developer changes src/auth.py line 12:                            │
+│                                                                     │
+│   - token = gen()                                                   │
+│   + token = generate_secure_token()                                 │
+│                                                                     │
+│    ┌──────────────────┐     ┌─────────────────────────────────────┐ │
+│    │ grippydoc check  │────▶│ ⚠ Stale: docs/auth.md:5            │ │
+│    └──────────────────┘     │   [grip:src/auth.py:10-15]         │ │
+│              │              │   Exit code: 1                      │ │
+│              ▼              └─────────────────────────────────────┘ │
+│         CI fails ❌                                                 │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+## CI/CD Integration
 
 **GitHub Actions:**
 ```yaml
@@ -123,96 +142,16 @@ docs-check:
 | Command | Description |
 |---------|-------------|
 | `grippydoc init` | Initialize GrippyDoc in the current directory |
-| `grippydoc record` | Scan and record hashes of all tagged code blocks |
+| `grippydoc record` | Scan docs and record hashes of referenced code |
 | `grippydoc check` | Compare current code against recorded hashes |
-| `grippydoc status` | Show status of all tracked code blocks |
+| `grippydoc status` | Show status of all tracked references |
 
-## Supported Languages
+## Why GrippyDoc?
 
-GrippyDoc recognizes comment styles for:
-
-- Python, Ruby, Shell (`#`)
-- JavaScript, TypeScript, Go, Rust, Java, C/C++ (`//`)
-- SQL (`--`)
-- HTML (`<!-- -->`)
-
-## Configuration
-
-The `.grippydoc/config.json` file lets you customize:
-
-```json
-{
-  "version": "1",
-  "extensions": [".py", ".js", ".ts", ".go"],
-  "exclude_dirs": [".git", "node_modules", "__pycache__"]
-}
-```
-
-## How It Works
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                           SETUP PHASE                               │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   auth.py                            docs/auth.md                   │
-│  ┌────────────────────────┐         ┌────────────────────────┐      │
-│  │ # <grip id="login">    │         │ ## Login Flow          │      │
-│  │ def login(user, pw):   │         │                        │      │
-│  │     validate(user)     │────────▶│ [grip:login]           │      │
-│  │     return token       │ linked  │                        │      │
-│  │ # </grip>              │         │ Users call login()...  │      │
-│  └────────────────────────┘         └────────────────────────┘      │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-                          ┌──────────────────┐
-                          │ grippydoc record │
-                          └────────┬─────────┘
-                                   │ saves hashes
-                                   ▼
-                     ┌─────────────────────────────┐
-                     │  .grippydoc/manifest.json   │
-                     │  ┌───────────────────────┐  │
-                     │  │ "login": {            │  │
-                     │  │   "hash": "a1b2c3...",│  │
-                     │  │   "file": "auth.py"   │  │
-                     │  │ }                     │  │
-                     │  └───────────────────────┘  │
-                     └─────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                       CHECK PHASE (CI/CD)                           │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   Developer changes code:                                           │
-│  ┌────────────────────────┐                                         │
-│  │ # <grip id="login">    │                                         │
-│  │ def login(user, pw):   │                                         │
-│  │     validate(user)     │                                         │
-│  │     log_attempt()      │ ◀── NEW LINE                            │
-│  │     return token       │                                         │
-│  │ # </grip>              │                                         │
-│  └────────────────────────┘                                         │
-│              │                                                      │
-│              ▼                                                      │
-│    ┌──────────────────┐     ┌─────────────────────────────────────┐ │
-│    │ grippydoc check  │────▶│ ⚠ Stale doc: docs/auth.md:5        │ │
-│    └──────────────────┘     │   Block [login] changed in auth.py │ │
-│              │              │   Exit code: 1                      │ │
-│              ▼              └─────────────────────────────────────┘ │
-│         CI fails ❌                                                 │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-**In short:**
-
-1. **Tag** code blocks with `<grip id="...">` in comments
-2. **Link** from Markdown with `[grip:id]`
-3. **Record** hashes with `grippydoc record`
-4. **Check** for drift with `grippydoc check` (exits 1 if stale)
+- **Zero source code changes** - References live in your docs, not your code
+- **Simple syntax** - Just `[grip:file:lines]` in Markdown
+- **CI/CD ready** - Exit code 1 on stale docs
+- **Lightweight** - No dependencies, pure Python
 
 ## License
 

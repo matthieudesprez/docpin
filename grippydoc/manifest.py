@@ -1,11 +1,11 @@
-"""Manifest management for storing and comparing code block hashes."""
+"""Manifest management for storing and comparing reference hashes."""
 
 import json
 from pathlib import Path
 from dataclasses import dataclass, asdict
 from datetime import datetime
 
-from .parser import CodeBlock
+from .resolver import CodeReference
 
 
 GRIPPYDOC_DIR = ".grippydoc"
@@ -16,17 +16,18 @@ CONFIG_FILE = "config.json"
 @dataclass
 class ManifestEntry:
     """A single entry in the manifest."""
-    id: str
+    reference: str
     file_path: str
-    start_line: int
-    end_line: int
+    ref_type: str
+    start_line: int | None
+    end_line: int | None
     hash: str
     recorded_at: str
 
 
 @dataclass
 class Manifest:
-    """The grippydoc manifest containing all tracked code blocks."""
+    """The grippydoc manifest containing all tracked references."""
     version: str
     entries: dict[str, ManifestEntry]
 
@@ -58,14 +59,6 @@ def init_grippydoc(root: Path) -> Path:
     if not config_path.exists():
         config = {
             "version": "1",
-            "extensions": [
-                ".py", ".js", ".ts", ".jsx", ".tsx",
-                ".go", ".rs", ".rb", ".java", ".c", ".cpp", ".h",
-            ],
-            "exclude_dirs": [
-                ".git", ".grippydoc", "node_modules", "__pycache__",
-                ".venv", "venv", "dist", "build",
-            ],
         }
         config_path.write_text(json.dumps(config, indent=2))
 
@@ -97,18 +90,19 @@ def save_manifest(root: Path, manifest: Manifest) -> None:
     manifest_path.write_text(json.dumps(manifest.to_dict(), indent=2))
 
 
-def record_blocks(root: Path, blocks: list[CodeBlock]) -> Manifest:
-    """Record code blocks to the manifest."""
+def record_references(root: Path, refs: list[CodeReference]) -> Manifest:
+    """Record code references to the manifest."""
     timestamp = datetime.utcnow().isoformat() + "Z"
 
     entries = {}
-    for block in blocks:
-        entries[block.id] = ManifestEntry(
-            id=block.id,
-            file_path=block.file_path,
-            start_line=block.start_line,
-            end_line=block.end_line,
-            hash=block.hash,
+    for ref in refs:
+        entries[ref.reference] = ManifestEntry(
+            reference=ref.reference,
+            file_path=ref.file_path,
+            ref_type=ref.ref_type,
+            start_line=ref.start_line,
+            end_line=ref.end_line,
+            hash=ref.hash,
             recorded_at=timestamp,
         )
 
@@ -119,53 +113,61 @@ def record_blocks(root: Path, blocks: list[CodeBlock]) -> Manifest:
 
 
 @dataclass
-class StaleLink:
-    """Represents a documentation link that may be stale."""
-    block_id: str
+class StaleReference:
+    """Represents a documentation reference that may be stale."""
+    reference: str
     doc_file: str
     doc_line: int
-    code_file: str
     old_hash: str
     new_hash: str
 
 
-def check_blocks(
+@dataclass
+class BrokenReference:
+    """Represents a documentation reference that cannot be resolved."""
+    reference: str
+    doc_file: str
+    doc_line: int
+    reason: str
+
+
+def check_references(
     root: Path,
-    blocks: list[CodeBlock],
     manifest: Manifest,
-) -> list[StaleLink]:
-    """Check code blocks against the manifest and find stale links."""
+) -> tuple[list[StaleReference], list[BrokenReference]]:
+    """Check documentation references against the manifest."""
     from .scanner import scan_markdown_files
+    from .resolver import resolve_reference
 
     stale = []
-    changed_ids = set()
+    broken = []
 
-    # Find blocks with changed hashes
-    for block in blocks:
-        if block.id in manifest.entries:
-            entry = manifest.entries[block.id]
-            if entry.hash != block.hash:
-                changed_ids.add(block.id)
+    doc_refs = scan_markdown_files(root)
 
-    if not changed_ids:
-        return stale
+    for doc_ref in doc_refs:
+        resolved = resolve_reference(doc_ref.reference, root)
 
-    # Find documentation links to changed blocks
-    doc_links = scan_markdown_files(root)
+        if resolved is None:
+            broken.append(BrokenReference(
+                reference=doc_ref.reference,
+                doc_file=doc_ref.doc_file,
+                doc_line=doc_ref.line_number,
+                reason="Could not resolve reference (file not found or invalid syntax)",
+            ))
+            continue
 
-    for link in doc_links:
-        if link.block_id in changed_ids:
-            block = next((b for b in blocks if b.id == link.block_id), None)
-            entry = manifest.entries.get(link.block_id)
-
-            if block and entry:
-                stale.append(StaleLink(
-                    block_id=link.block_id,
-                    doc_file=link.file_path,
-                    doc_line=link.line_number,
-                    code_file=block.file_path,
+        if doc_ref.reference in manifest.entries:
+            entry = manifest.entries[doc_ref.reference]
+            if entry.hash != resolved.hash:
+                stale.append(StaleReference(
+                    reference=doc_ref.reference,
+                    doc_file=doc_ref.doc_file,
+                    doc_line=doc_ref.line_number,
                     old_hash=entry.hash,
-                    new_hash=block.hash,
+                    new_hash=resolved.hash,
                 ))
+        else:
+            # Reference not in manifest - treat as new (not stale)
+            pass
 
-    return stale
+    return stale, broken

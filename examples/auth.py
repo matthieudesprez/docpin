@@ -1,17 +1,14 @@
-"""Example authentication module with grip tags."""
+"""Example authentication module."""
 
 
-# <grip id="auth-logic">
 def authenticate(username: str, password: str) -> dict | None:
     """Authenticate a user and return session info."""
     user = find_user(username)
     if user and verify_password(password, user["password_hash"]):
         return create_session(user)
     return None
-# </grip>
 
 
-# <grip id="session-create">
 def create_session(user: dict) -> dict:
     """Create a new session for the authenticated user."""
     import secrets
@@ -20,7 +17,6 @@ def create_session(user: dict) -> dict:
         "token": secrets.token_urlsafe(32),
         "expires_in": 3600,
     }
-# </grip>
 
 
 def find_user(username: str) -> dict | None:
