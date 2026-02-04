@@ -1,5 +1,7 @@
 """Resolver for extracting code content from file references."""
 
+from __future__ import annotations
+
 import ast
 import re
 from dataclasses import dataclass
