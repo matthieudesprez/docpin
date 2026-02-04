@@ -5,15 +5,15 @@ import sys
 from pathlib import Path
 
 from . import __version__
-from .scanner import scan_markdown_files
-from .resolver import resolve_reference
 from .manifest import (
+    check_references,
+    get_grippydoc_dir,
     init_grippydoc,
     load_manifest,
     record_references,
-    check_references,
-    get_grippydoc_dir,
 )
+from .resolver import resolve_reference
+from .scanner import scan_markdown_files
 
 
 def cmd_init(args: argparse.Namespace) -> int:
@@ -48,6 +48,20 @@ def cmd_record(args: argparse.Namespace) -> int:
     if not doc_refs:
         print("No grip references found in markdown files.")
         return 0
+
+    # Check for orphans before recording (references in manifest but not in docs)
+    old_manifest = load_manifest(root)
+    if old_manifest and old_manifest.entries:
+        doc_ref_set = {ref.reference for ref in doc_refs}
+        orphaned = [
+            entry for ref_key, entry in old_manifest.entries.items()
+            if ref_key not in doc_ref_set
+        ]
+        if orphaned:
+            print(f"Removing {len(orphaned)} orphaned reference(s) from manifest:")
+            for entry in orphaned:
+                print(f"  [grip:{entry.reference}]")
+            print()
 
     # Resolve each reference to code
     resolved = []
@@ -97,7 +111,7 @@ def cmd_check(args: argparse.Namespace) -> int:
         print("Error: No manifest found. Run 'grippydoc record' first.", file=sys.stderr)
         return 1
 
-    stale, broken = check_references(root, manifest)
+    stale, broken, orphaned = check_references(root, manifest)
 
     has_issues = False
 
@@ -121,8 +135,20 @@ def cmd_check(args: argparse.Namespace) -> int:
             print(f"    Hash: {ref.old_hash[:8]}... -> {ref.new_hash[:8]}...")
             print()
 
+    if orphaned:
+        has_issues = True
+        print(f"Found {len(orphaned)} orphaned reference(s):\n")
+        for ref in orphaned:
+            print(f"  [grip:{ref.reference}]")
+            print(f"    File: {ref.file_path}")
+            print("    Status: No longer referenced in documentation")
+            print()
+
     if has_issues:
-        print("Run 'grippydoc record' after updating documentation to clear warnings.")
+        if stale or broken:
+            print("For stale/broken references: update your documentation, then run 'grippydoc record'.")
+        if orphaned:
+            print("For orphaned references: run 'grippydoc record' to remove them from the manifest.")
         return 1
 
     print("All documentation references are up to date.")

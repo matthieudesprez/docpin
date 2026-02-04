@@ -1,7 +1,5 @@
 """Tests for the scanner module."""
 
-import pytest
-from pathlib import Path
 
 from grippydoc.scanner import parse_markdown, scan_markdown_files
 
@@ -45,6 +43,25 @@ Some text.
 ```markdown
 [grip:example/in/code/block.py]
 ```
+
+[grip:another/real.py]
+""")
+
+        refs = parse_markdown(md_file)
+
+        assert len(refs) == 2
+        assert refs[0].reference == "real/reference.py"
+        assert refs[1].reference == "another/real.py"
+
+    def test_skips_tilde_fenced_code_blocks(self, tmp_path):
+        md_file = tmp_path / "test.md"
+        md_file.write_text("""# Header
+
+[grip:real/reference.py]
+
+~~~markdown
+[grip:example/in/code/block.py]
+~~~
 
 [grip:another/real.py]
 """)
@@ -125,6 +142,20 @@ class TestScanMarkdownFiles:
         node_modules = tmp_path / "node_modules"
         node_modules.mkdir()
         (node_modules / "doc.md").write_text("[grip:should/be/ignored.py]\n")
+
+        # Create file in included directory
+        (tmp_path / "doc.md").write_text("[grip:included.py]\n")
+
+        refs = scan_markdown_files(tmp_path)
+
+        assert len(refs) == 1
+        assert refs[0].reference == "included.py"
+
+    def test_excludes_venv_directories(self, tmp_path):
+        # Create files in .venv directory
+        venv = tmp_path / ".venv" / "lib"
+        venv.mkdir(parents=True)
+        (venv / "README.md").write_text("[grip:should/be/ignored.py]\n")
 
         # Create file in included directory
         (tmp_path / "doc.md").write_text("[grip:included.py]\n")

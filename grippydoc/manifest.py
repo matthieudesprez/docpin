@@ -1,12 +1,11 @@
 """Manifest management for storing and comparing reference hashes."""
 
 import json
-from pathlib import Path
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 
 from .resolver import CodeReference
-
 
 GRIPPYDOC_DIR = ".grippydoc"
 MANIFEST_FILE = "manifest.json"
@@ -131,13 +130,21 @@ class BrokenReference:
     reason: str
 
 
+@dataclass
+class OrphanedReference:
+    """Represents a manifest entry with no corresponding documentation reference."""
+    reference: str
+    file_path: str
+    ref_type: str
+
+
 def check_references(
     root: Path,
     manifest: Manifest,
-) -> tuple[list[StaleReference], list[BrokenReference]]:
+) -> tuple[list[StaleReference], list[BrokenReference], list[OrphanedReference]]:
     """Check documentation references against the manifest."""
-    from .scanner import scan_markdown_files
     from .resolver import resolve_reference
+    from .scanner import scan_markdown_files
 
     stale = []
     broken = []
@@ -170,4 +177,15 @@ def check_references(
             # Reference not in manifest - treat as new (not stale)
             pass
 
-    return stale, broken
+    # Find orphaned references (in manifest but not in docs)
+    doc_ref_set = {doc_ref.reference for doc_ref in doc_refs}
+    orphaned = []
+    for ref_key, entry in manifest.entries.items():
+        if ref_key not in doc_ref_set:
+            orphaned.append(OrphanedReference(
+                reference=entry.reference,
+                file_path=entry.file_path,
+                ref_type=entry.ref_type,
+            ))
+
+    return stale, broken, orphaned

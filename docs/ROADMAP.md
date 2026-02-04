@@ -12,10 +12,10 @@ Future improvements and features planned for GrippyDoc.
 
 ### Planned
 
-- [ ] `[grip:file.py#function_name]` - Function by name
-- [ ] `[grip:file.py#ClassName]` - Class by name
-- [ ] `[grip:file.py#ClassName.method]` - Method by name
-- [ ] `[grip:file.py#CONSTANT]` - Top-level variable/constant
+- [x] `[grip:file.py#function_name]` - Function by name
+- [x] `[grip:file.py#ClassName]` - Class by name
+- [x] `[grip:file.py#ClassName.method]` - Method by name
+- [x] `[grip:file.py#CONSTANT]` - Top-level variable/constant
 - [ ] `[grip:file.py?/regex/]` - Regex pattern match
 - [ ] `[grip:src/**/*.py]` - Glob patterns (multiple files)
 
@@ -54,13 +54,13 @@ To support function/class/method references without modifying source code:
 
 ## Validation
 
-- [ ] **Orphan detection** - Warn when referenced code is deleted
+- [x] **Orphan detection** - Warn when manifest entries are no longer referenced in docs
 - [ ] **Unused reference detection** - Find grip references that no doc uses
 - [ ] **Overlapping ranges** - Warn when multiple docs reference same code
 
 ## Smart Hashing
 
-- [ ] **Ignore whitespace-only changes** - Don't flag formatting changes
+- [x] **Ignore whitespace-only changes** - Don't flag formatting changes
 - [ ] **Ignore comment changes** - Comments inside referenced code
 - [ ] **Semantic hashing** - For supported languages, hash the AST not text
 - [ ] **Configurable sensitivity** - `strict`, `normal`, `relaxed` modes

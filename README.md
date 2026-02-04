@@ -67,6 +67,35 @@ If any referenced code has changed since the last `record`, GrippyDoc will:
 | `[grip:path/to/file.py]` | Track entire file |
 | `[grip:path/to/file.py:42]` | Track single line |
 | `[grip:path/to/file.py:42-58]` | Track line range |
+| `[grip:path/to/file.py#function_name]` | Track function by name |
+| `[grip:path/to/file.py#ClassName]` | Track class by name |
+| `[grip:path/to/file.py#ClassName.method]` | Track method by name |
+| `[grip:path/to/file.py#CONSTANT]` | Track top-level variable |
+
+### Symbol References (Python only)
+
+Symbol references let you track code by name instead of line numbers. This is more resilient to code changes that shift line numbers:
+
+```markdown
+The authentication is handled by the login function:
+
+[grip:src/auth.py#login]
+
+The `Auth` class manages user sessions:
+
+[grip:src/auth.py#Auth]
+
+Specifically, the logout method:
+
+[grip:src/auth.py#Auth.logout]
+```
+
+Symbol references support:
+- Functions (sync and async)
+- Classes
+- Methods (including nested classes)
+- Top-level variables and constants
+- Decorated functions and classes (includes decorator lines)
 
 ## How It Works
 

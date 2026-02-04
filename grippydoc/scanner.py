@@ -1,8 +1,8 @@
 """Scanner for finding grip references in Markdown files."""
 
 import re
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -17,8 +17,8 @@ class DocReference:
 # Captures everything between [grip: and ]
 GRIP_PATTERN = re.compile(r'\[grip:([^\]]+)\]')
 
-# Pattern to match fenced code block delimiters
-CODE_FENCE_PATTERN = re.compile(r'^```')
+# Pattern to match fenced code block delimiters (``` or ~~~, 3+ chars)
+CODE_FENCE_PATTERN = re.compile(r'^(`{3,}|~{3,})')
 
 # Pattern to match inline code (backticks)
 INLINE_CODE_PATTERN = re.compile(r'`[^`]+`')
@@ -69,7 +69,10 @@ def scan_markdown_files(
 ) -> list[DocReference]:
     """Scan a directory recursively for grip references in Markdown files."""
     if exclude_dirs is None:
-        exclude_dirs = [".git", ".grippydoc", "node_modules", "__pycache__"]
+        exclude_dirs = [
+            ".git", ".grippydoc", ".venv", "venv",
+            "node_modules", "__pycache__", ".tox", ".nox",
+        ]
 
     refs = []
 
