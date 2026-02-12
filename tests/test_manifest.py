@@ -5,6 +5,7 @@ import json
 from grippydoc.manifest import (
     Manifest,
     ManifestEntry,
+    StaleReference,
     check_references,
     init_grippydoc,
     load_manifest,
@@ -92,6 +93,48 @@ class TestManifest:
         assert "test.py:1-10" in manifest.entries
         assert manifest.entries["test.py:1-10"].hash == "abc123"
 
+    def test_from_dict_backward_compat_no_content(self):
+        """Legacy manifests without content field should load with content=None."""
+        data = {
+            "version": "1",
+            "entries": {
+                "test.py": {
+                    "reference": "test.py",
+                    "file_path": "test.py",
+                    "ref_type": "file",
+                    "start_line": None,
+                    "end_line": None,
+                    "hash": "abc123",
+                    "recorded_at": "2024-01-01T00:00:00Z",
+                }
+            },
+        }
+
+        manifest = Manifest.from_dict(data)
+
+        assert manifest.entries["test.py"].content is None
+
+    def test_from_dict_with_content(self):
+        data = {
+            "version": "1",
+            "entries": {
+                "test.py": {
+                    "reference": "test.py",
+                    "file_path": "test.py",
+                    "ref_type": "file",
+                    "start_line": None,
+                    "end_line": None,
+                    "hash": "abc123",
+                    "recorded_at": "2024-01-01T00:00:00Z",
+                    "content": "print('hello')",
+                }
+            },
+        }
+
+        manifest = Manifest.from_dict(data)
+
+        assert manifest.entries["test.py"].content == "print('hello')"
+
 
 class TestRecordReferences:
     """Tests for record_references function."""
@@ -115,6 +158,7 @@ class TestRecordReferences:
 
         assert len(manifest.entries) == 1
         assert "test.py:1-10" in manifest.entries
+        assert manifest.entries["test.py:1-10"].content == "test content"
 
     def test_persists_to_disk(self, tmp_path):
         init_grippydoc(tmp_path)
@@ -292,3 +336,63 @@ class TestCheckReferences:
         assert len(broken) == 0
         assert len(orphaned) == 1
         assert orphaned[0].reference == "test2.py"
+
+    def test_stale_reference_includes_content(self, tmp_path):
+        # Setup: create file and markdown
+        test_file = tmp_path / "test.py"
+        test_file.write_text("original content")
+
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "doc.md").write_text("[grip:test.py]\n")
+
+        # Initialize and record
+        init_grippydoc(tmp_path)
+        from grippydoc.resolver import resolve_reference
+        ref = resolve_reference("test.py", tmp_path)
+        record_references(tmp_path, [ref])
+
+        # Modify the file
+        test_file.write_text("modified content")
+
+        # Check
+        manifest = load_manifest(tmp_path)
+        stale, broken, orphaned = check_references(tmp_path, manifest)
+
+        assert len(stale) == 1
+        assert stale[0].old_content == "original content"
+        assert stale[0].new_content == "modified content"
+
+    def test_legacy_manifest_stale_has_none_old_content(self, tmp_path):
+        """Legacy manifest without content produces old_content=None."""
+        import json
+
+        test_file = tmp_path / "test.py"
+        test_file.write_text("original content")
+
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "doc.md").write_text("[grip:test.py]\n")
+
+        init_grippydoc(tmp_path)
+        from grippydoc.resolver import resolve_reference
+        ref = resolve_reference("test.py", tmp_path)
+        record_references(tmp_path, [ref])
+
+        # Remove content from manifest to simulate legacy
+        manifest_path = tmp_path / ".grippydoc" / "manifest.json"
+        data = json.loads(manifest_path.read_text())
+        for entry in data["entries"].values():
+            del entry["content"]
+        manifest_path.write_text(json.dumps(data))
+
+        # Modify the file
+        test_file.write_text("modified content")
+
+        # Check
+        manifest = load_manifest(tmp_path)
+        stale, broken, orphaned = check_references(tmp_path, manifest)
+
+        assert len(stale) == 1
+        assert stale[0].old_content is None
+        assert stale[0].new_content == "modified content"

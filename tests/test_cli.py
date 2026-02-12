@@ -92,7 +92,7 @@ class TestCmdCheck:
         (docs / "doc.md").write_text("[grip:test1.py]\n")
 
         # Run check command
-        args = Namespace(path=str(tmp_path))
+        args = Namespace(path=str(tmp_path), diff=False)
         result = cmd_check(args)
 
         captured = capsys.readouterr()
@@ -118,10 +118,132 @@ class TestCmdCheck:
         (docs / "doc.md").write_text("No references.\n")
 
         # Run check command
-        args = Namespace(path=str(tmp_path))
+        args = Namespace(path=str(tmp_path), diff=False)
         result = cmd_check(args)
 
         captured = capsys.readouterr()
         assert result == 1
         assert "orphaned references: run 'grippydoc record'" in captured.out.lower()
         assert "stale/broken" not in captured.out.lower()
+
+
+class TestCmdCheckDiff:
+    """Tests for cmd_check --diff functionality."""
+
+    def test_diff_shows_code_diff_and_doc_context(self, tmp_path, capsys):
+        # Setup: create file and markdown with surrounding context
+        test_file = tmp_path / "test.py"
+        test_file.write_text("def hello():\n    return 'world'\n")
+
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "doc.md").write_text(
+            "# Hello Function\n"
+            "\n"
+            "This function returns a greeting:\n"
+            "\n"
+            "[grip:test.py]\n"
+            "\n"
+            "Use it in your application.\n"
+        )
+
+        # Initialize and record
+        init_grippydoc(tmp_path)
+        ref = resolve_reference("test.py", tmp_path)
+        record_references(tmp_path, [ref])
+
+        # Modify the file
+        test_file.write_text("def hello():\n    return 'universe'\n")
+
+        # Run check with --diff
+        args = Namespace(path=str(tmp_path), diff=True)
+        result = cmd_check(args)
+
+        captured = capsys.readouterr()
+        assert result == 1
+        assert "Code diff:" in captured.out
+        assert "- " in captured.out or "---" in captured.out
+        assert "Documentation context" in captured.out
+        assert ">>>" in captured.out
+        assert "[grip:test.py]" in captured.out
+
+    def test_no_diff_without_flag(self, tmp_path, capsys):
+        # Setup
+        test_file = tmp_path / "test.py"
+        test_file.write_text("original")
+
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "doc.md").write_text("[grip:test.py]\n")
+
+        init_grippydoc(tmp_path)
+        ref = resolve_reference("test.py", tmp_path)
+        record_references(tmp_path, [ref])
+
+        test_file.write_text("modified")
+
+        # Run check without --diff
+        args = Namespace(path=str(tmp_path), diff=False)
+        result = cmd_check(args)
+
+        captured = capsys.readouterr()
+        assert result == 1
+        assert "Code diff:" not in captured.out
+        assert "Documentation context" not in captured.out
+
+    def test_legacy_manifest_no_diff_available(self, tmp_path, capsys):
+        # Setup
+        test_file = tmp_path / "test.py"
+        test_file.write_text("original content")
+
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "doc.md").write_text("[grip:test.py]\n")
+
+        init_grippydoc(tmp_path)
+        ref = resolve_reference("test.py", tmp_path)
+        record_references(tmp_path, [ref])
+
+        # Simulate legacy manifest by removing content field
+        import json
+        manifest_path = tmp_path / ".grippydoc" / "manifest.json"
+        data = json.loads(manifest_path.read_text())
+        for entry in data["entries"].values():
+            del entry["content"]
+        manifest_path.write_text(json.dumps(data))
+
+        # Modify the file
+        test_file.write_text("modified content")
+
+        # Run check with --diff
+        args = Namespace(path=str(tmp_path), diff=True)
+        result = cmd_check(args)
+
+        captured = capsys.readouterr()
+        assert result == 1
+        assert "No diff available" in captured.out
+        assert "re-run 'grippydoc record'" in captured.out
+
+    def test_diff_shows_actual_changes(self, tmp_path, capsys):
+        # Setup with specific content to verify diff output
+        test_file = tmp_path / "test.py"
+        test_file.write_text("def login(username, password):\n    token = gen()\n    return token\n")
+
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "doc.md").write_text("[grip:test.py]\n")
+
+        init_grippydoc(tmp_path)
+        ref = resolve_reference("test.py", tmp_path)
+        record_references(tmp_path, [ref])
+
+        # Modify with specific change
+        test_file.write_text("def login(username, password):\n    token = generate_secure_token()\n    return token\n")
+
+        args = Namespace(path=str(tmp_path), diff=True)
+        result = cmd_check(args)
+
+        captured = capsys.readouterr()
+        assert result == 1
+        assert "gen()" in captured.out
+        assert "generate_secure_token()" in captured.out

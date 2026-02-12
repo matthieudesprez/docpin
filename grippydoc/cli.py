@@ -1,6 +1,7 @@
 """Command-line interface for GrippyDoc."""
 
 import argparse
+import difflib
 import sys
 from pathlib import Path
 
@@ -102,6 +103,46 @@ def cmd_record(args: argparse.Namespace) -> int:
     return 0
 
 
+def _format_diff(old_content: str | None, new_content: str | None, reference: str) -> str | None:
+    """Produce a unified diff between old and new code content."""
+    if old_content is None:
+        return None
+
+    old_lines = old_content.splitlines(keepends=True)
+    new_lines = new_content.splitlines(keepends=True) if new_content else []
+
+    diff = difflib.unified_diff(
+        old_lines,
+        new_lines,
+        fromfile=f"a/{reference} (recorded)",
+        tofile=f"b/{reference} (current)",
+    )
+    return "".join(diff)
+
+
+def _get_doc_context(doc_file: str, doc_line: int, context: int = 3) -> str | None:
+    """Read surrounding lines from a markdown file around the grip reference."""
+    try:
+        lines = Path(doc_file).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+
+    total = len(lines)
+    start = max(0, doc_line - 1 - context)
+    end = min(total, doc_line + context)
+
+    result = []
+    for i in range(start, end):
+        line_num = i + 1
+        if line_num == doc_line:
+            prefix = f"  >>> {line_num:>4} | "
+        else:
+            prefix = f"      {line_num:>4} | "
+        result.append(prefix + lines[i])
+
+    return "\n".join(result)
+
+
 def cmd_check(args: argparse.Namespace) -> int:
     """Check for stale documentation references."""
     root = Path(args.path).resolve()
@@ -114,6 +155,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     stale, broken, orphaned = check_references(root, manifest)
 
     has_issues = False
+    show_diff = getattr(args, "diff", False)
 
     if broken:
         has_issues = True
@@ -133,6 +175,18 @@ def cmd_check(args: argparse.Namespace) -> int:
             print(f"  [grip:{ref.reference}]")
             print(f"    Location: {rel_doc}:{ref.doc_line}")
             print(f"    Hash: {ref.old_hash[:8]}... -> {ref.new_hash[:8]}...")
+            if show_diff:
+                doc_ctx = _get_doc_context(ref.doc_file, ref.doc_line)
+                if doc_ctx:
+                    print(f"    Documentation context ({rel_doc}):")
+                    print(doc_ctx)
+                diff_text = _format_diff(ref.old_content, ref.new_content, ref.reference)
+                if diff_text:
+                    print("    Code diff:")
+                    for line in diff_text.splitlines():
+                        print(f"      {line}")
+                elif ref.old_content is None:
+                    print("    No diff available (re-run 'grippydoc record' to enable diffs)")
             print()
 
     if orphaned:
@@ -237,6 +291,12 @@ def main() -> int:
         nargs="?",
         default=".",
         help="Path to check (default: current directory)",
+    )
+    check_parser.add_argument(
+        "--diff",
+        action="store_true",
+        default=False,
+        help="Show code diffs and documentation context for stale references",
     )
 
     # status command

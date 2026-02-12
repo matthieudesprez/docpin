@@ -24,6 +24,7 @@ class ManifestEntry:
     end_line: int | None
     hash: str
     recorded_at: str
+    content: str | None = None
 
 
 @dataclass
@@ -105,6 +106,7 @@ def record_references(root: Path, refs: list[CodeReference]) -> Manifest:
             end_line=ref.end_line,
             hash=ref.hash,
             recorded_at=timestamp,
+            content=ref.content,
         )
 
     manifest = Manifest(version="1", entries=entries)
@@ -121,6 +123,8 @@ class StaleReference:
     doc_line: int
     old_hash: str
     new_hash: str
+    old_content: str | None = None
+    new_content: str | None = None
 
 
 @dataclass
@@ -174,6 +178,8 @@ def check_references(
                     doc_line=doc_ref.line_number,
                     old_hash=entry.hash,
                     new_hash=resolved.hash,
+                    old_content=entry.content,
+                    new_content=resolved.content,
                 ))
         else:
             # Reference not in manifest - treat as new (not stale)
