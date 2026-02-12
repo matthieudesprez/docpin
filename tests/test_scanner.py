@@ -1,7 +1,7 @@
 """Tests for the scanner module."""
 
 
-from grippydoc.scanner import parse_markdown, scan_markdown_files
+from grippydoc.scanner import parse_markdown, scan_markdown_files, update_markdown_hashes
 
 
 class TestParseMarkdown:
@@ -111,6 +111,98 @@ Use `[grip:example.py]` syntax to reference code.
         refs = parse_markdown(md_file)
 
         assert len(refs) == 0
+
+    def test_parses_inline_hash(self, tmp_path):
+        md_file = tmp_path / "test.md"
+        md_file.write_text("[grip:src/auth.py:10-20 @a1b2c3d4]\n")
+
+        refs = parse_markdown(md_file)
+
+        assert len(refs) == 1
+        assert refs[0].reference == "src/auth.py:10-20"
+        assert refs[0].recorded_hash == "a1b2c3d4"
+
+    def test_reference_without_hash_has_none(self, tmp_path):
+        md_file = tmp_path / "test.md"
+        md_file.write_text("[grip:src/auth.py]\n")
+
+        refs = parse_markdown(md_file)
+
+        assert len(refs) == 1
+        assert refs[0].reference == "src/auth.py"
+        assert refs[0].recorded_hash is None
+
+
+class TestUpdateMarkdownHashes:
+    """Tests for update_markdown_hashes function."""
+
+    def test_update_adds_hash(self, tmp_path):
+        md_file = tmp_path / "test.md"
+        md_file.write_text("[grip:src/auth.py]\n")
+
+        count = update_markdown_hashes(md_file, {"src/auth.py": "abc123"})
+
+        assert count == 1
+        assert md_file.read_text() == "[grip:src/auth.py @abc123]\n"
+
+    def test_update_replaces_existing_hash(self, tmp_path):
+        md_file = tmp_path / "test.md"
+        md_file.write_text("[grip:src/auth.py @oldhash]\n")
+
+        count = update_markdown_hashes(md_file, {"src/auth.py": "newhash"})
+
+        assert count == 1
+        assert md_file.read_text() == "[grip:src/auth.py @newhash]\n"
+
+    def test_update_skips_code_blocks(self, tmp_path):
+        md_file = tmp_path / "test.md"
+        md_file.write_text("```\n[grip:src/auth.py]\n```\n")
+
+        count = update_markdown_hashes(md_file, {"src/auth.py": "abc123"})
+
+        assert count == 0
+        assert md_file.read_text() == "```\n[grip:src/auth.py]\n```\n"
+
+    def test_update_skips_inline_code(self, tmp_path):
+        md_file = tmp_path / "test.md"
+        md_file.write_text("Use `[grip:src/auth.py]` syntax.\n")
+
+        count = update_markdown_hashes(md_file, {"src/auth.py": "abc123"})
+
+        assert count == 0
+        assert md_file.read_text() == "Use `[grip:src/auth.py]` syntax.\n"
+
+    def test_update_multiple_refs_same_line(self, tmp_path):
+        md_file = tmp_path / "test.md"
+        md_file.write_text("See [grip:a.py] and [grip:b.py] here.\n")
+
+        count = update_markdown_hashes(md_file, {"a.py": "hash_a", "b.py": "hash_b"})
+
+        assert count == 2
+        content = md_file.read_text()
+        assert "[grip:a.py @hash_a]" in content
+        assert "[grip:b.py @hash_b]" in content
+
+    def test_update_preserves_surrounding_text(self, tmp_path):
+        md_file = tmp_path / "test.md"
+        md_file.write_text("# Header\n\nSome text before.\n\n[grip:src/auth.py]\n\nSome text after.\n")
+
+        count = update_markdown_hashes(md_file, {"src/auth.py": "abc123"})
+
+        assert count == 1
+        content = md_file.read_text()
+        assert content == "# Header\n\nSome text before.\n\n[grip:src/auth.py @abc123]\n\nSome text after.\n"
+
+    def test_update_only_updates_known_refs(self, tmp_path):
+        md_file = tmp_path / "test.md"
+        md_file.write_text("[grip:known.py]\n[grip:unknown.py]\n")
+
+        count = update_markdown_hashes(md_file, {"known.py": "abc123"})
+
+        assert count == 1
+        content = md_file.read_text()
+        assert "[grip:known.py @abc123]" in content
+        assert "[grip:unknown.py]" in content
 
 
 class TestScanMarkdownFiles:

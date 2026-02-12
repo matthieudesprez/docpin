@@ -2,15 +2,14 @@
 
 from argparse import Namespace
 
-from grippydoc.cli import cmd_check, cmd_record
-from grippydoc.manifest import init_grippydoc, load_manifest, record_references
-from grippydoc.resolver import resolve_reference
+from grippydoc.cli import cmd_check, cmd_record, cmd_status
+from grippydoc.manifest import record_references
 
 
 class TestCmdRecord:
     """Tests for cmd_record function."""
 
-    def test_reports_orphans_being_removed(self, tmp_path, capsys):
+    def test_record_output(self, tmp_path, capsys):
         # Setup: create file and markdown
         test_file = tmp_path / "test.py"
         test_file.write_text("content")
@@ -19,179 +18,30 @@ class TestCmdRecord:
         docs.mkdir()
         (docs / "doc.md").write_text("[grip:test.py]\n")
 
-        # Initialize and record
-        init_grippydoc(tmp_path)
-        ref = resolve_reference("test.py", tmp_path)
-        record_references(tmp_path, [ref])
-
-        # Remove the reference from docs
-        (docs / "doc.md").write_text("No more grip references here.\n")
-
-        # Create a new reference so record has something to do
-        test_file2 = tmp_path / "test2.py"
-        test_file2.write_text("content2")
-        (docs / "doc.md").write_text("[grip:test2.py]\n")
-
-        # Run record command
         args = Namespace(path=str(tmp_path))
         result = cmd_record(args)
 
         captured = capsys.readouterr()
         assert result == 0
-        assert "Removing 1 orphaned reference(s) from manifest:" in captured.out
-        assert "[grip:test.py]" in captured.out
+        assert "Recorded 1 reference(s)." in captured.out
 
-        # Verify manifest only has the new reference
-        manifest = load_manifest(tmp_path)
-        assert "test2.py" in manifest.entries
-        assert "test.py" not in manifest.entries
-
-    def test_no_orphan_message_when_none(self, tmp_path, capsys):
-        # Setup: create file and markdown
-        test_file = tmp_path / "test.py"
-        test_file.write_text("content")
-
+    def test_record_warns_on_unresolvable(self, tmp_path, capsys):
         docs = tmp_path / "docs"
         docs.mkdir()
-        (docs / "doc.md").write_text("[grip:test.py]\n")
+        (docs / "doc.md").write_text("[grip:nonexistent.py]\n")
 
-        # Initialize and record
-        init_grippydoc(tmp_path)
-
-        # Run record command
         args = Namespace(path=str(tmp_path))
         result = cmd_record(args)
 
         captured = capsys.readouterr()
-        assert result == 0
-        assert "orphaned" not in captured.out.lower()
+        assert "Warning" in captured.out
+        assert "nonexistent.py" in captured.out
 
 
 class TestCmdCheck:
     """Tests for cmd_check function."""
 
-    def test_separate_advice_for_stale_and_orphan(self, tmp_path, capsys):
-        # Setup: create two files
-        test_file1 = tmp_path / "test1.py"
-        test_file1.write_text("original content")
-        test_file2 = tmp_path / "test2.py"
-        test_file2.write_text("content2")
-
-        docs = tmp_path / "docs"
-        docs.mkdir()
-        (docs / "doc.md").write_text("[grip:test1.py]\n[grip:test2.py]\n")
-
-        # Initialize and record
-        init_grippydoc(tmp_path)
-        ref1 = resolve_reference("test1.py", tmp_path)
-        ref2 = resolve_reference("test2.py", tmp_path)
-        record_references(tmp_path, [ref1, ref2])
-
-        # Make test1 stale and test2 orphaned
-        test_file1.write_text("modified content")
-        (docs / "doc.md").write_text("[grip:test1.py]\n")
-
-        # Run check command
-        args = Namespace(path=str(tmp_path), diff=False)
-        result = cmd_check(args)
-
-        captured = capsys.readouterr()
-        assert result == 1
-        assert "stale/broken references: update your documentation" in captured.out.lower()
-        assert "orphaned references: run 'grippydoc record'" in captured.out.lower()
-
-    def test_only_orphan_advice_when_no_stale(self, tmp_path, capsys):
-        # Setup
-        test_file = tmp_path / "test.py"
-        test_file.write_text("content")
-
-        docs = tmp_path / "docs"
-        docs.mkdir()
-        (docs / "doc.md").write_text("[grip:test.py]\n")
-
-        # Initialize and record
-        init_grippydoc(tmp_path)
-        ref = resolve_reference("test.py", tmp_path)
-        record_references(tmp_path, [ref])
-
-        # Make it orphaned (remove from docs)
-        (docs / "doc.md").write_text("No references.\n")
-
-        # Run check command
-        args = Namespace(path=str(tmp_path), diff=False)
-        result = cmd_check(args)
-
-        captured = capsys.readouterr()
-        assert result == 1
-        assert "orphaned references: run 'grippydoc record'" in captured.out.lower()
-        assert "stale/broken" not in captured.out.lower()
-
-
-class TestCmdCheckDiff:
-    """Tests for cmd_check --diff functionality."""
-
-    def test_diff_shows_code_diff_and_doc_context(self, tmp_path, capsys):
-        # Setup: create file and markdown with surrounding context
-        test_file = tmp_path / "test.py"
-        test_file.write_text("def hello():\n    return 'world'\n")
-
-        docs = tmp_path / "docs"
-        docs.mkdir()
-        (docs / "doc.md").write_text(
-            "# Hello Function\n"
-            "\n"
-            "This function returns a greeting:\n"
-            "\n"
-            "[grip:test.py]\n"
-            "\n"
-            "Use it in your application.\n"
-        )
-
-        # Initialize and record
-        init_grippydoc(tmp_path)
-        ref = resolve_reference("test.py", tmp_path)
-        record_references(tmp_path, [ref])
-
-        # Modify the file
-        test_file.write_text("def hello():\n    return 'universe'\n")
-
-        # Run check with --diff
-        args = Namespace(path=str(tmp_path), diff=True)
-        result = cmd_check(args)
-
-        captured = capsys.readouterr()
-        assert result == 1
-        assert "Code diff:" in captured.out
-        assert "- " in captured.out or "---" in captured.out
-        assert "Documentation context" in captured.out
-        assert ">>>" in captured.out
-        assert "[grip:test.py]" in captured.out
-
-    def test_no_diff_without_flag(self, tmp_path, capsys):
-        # Setup
-        test_file = tmp_path / "test.py"
-        test_file.write_text("original")
-
-        docs = tmp_path / "docs"
-        docs.mkdir()
-        (docs / "doc.md").write_text("[grip:test.py]\n")
-
-        init_grippydoc(tmp_path)
-        ref = resolve_reference("test.py", tmp_path)
-        record_references(tmp_path, [ref])
-
-        test_file.write_text("modified")
-
-        # Run check without --diff
-        args = Namespace(path=str(tmp_path), diff=False)
-        result = cmd_check(args)
-
-        captured = capsys.readouterr()
-        assert result == 1
-        assert "Code diff:" not in captured.out
-        assert "Documentation context" not in captured.out
-
-    def test_legacy_manifest_no_diff_available(self, tmp_path, capsys):
+    def test_check_stale_output(self, tmp_path, capsys):
         # Setup
         test_file = tmp_path / "test.py"
         test_file.write_text("original content")
@@ -200,50 +50,118 @@ class TestCmdCheckDiff:
         docs.mkdir()
         (docs / "doc.md").write_text("[grip:test.py]\n")
 
-        init_grippydoc(tmp_path)
-        ref = resolve_reference("test.py", tmp_path)
-        record_references(tmp_path, [ref])
+        # Record first
+        record_references(tmp_path)
 
-        # Simulate legacy manifest by removing content field
-        import json
-        manifest_path = tmp_path / ".grippydoc" / "manifest.json"
-        data = json.loads(manifest_path.read_text())
-        for entry in data["entries"].values():
-            del entry["content"]
-        manifest_path.write_text(json.dumps(data))
-
-        # Modify the file
+        # Modify the code
         test_file.write_text("modified content")
 
-        # Run check with --diff
-        args = Namespace(path=str(tmp_path), diff=True)
+        args = Namespace(path=str(tmp_path))
         result = cmd_check(args)
 
         captured = capsys.readouterr()
         assert result == 1
-        assert "No diff available" in captured.out
-        assert "re-run 'grippydoc record'" in captured.out
+        assert "stale" in captured.out.lower()
+        assert "test.py" in captured.out
+        assert "Run 'grippydoc record' to update hashes." in captured.out
 
-    def test_diff_shows_actual_changes(self, tmp_path, capsys):
-        # Setup with specific content to verify diff output
+    def test_check_unrecorded_output(self, tmp_path, capsys):
+        # Setup: file exists, no hash recorded
         test_file = tmp_path / "test.py"
-        test_file.write_text("def login(username, password):\n    token = gen()\n    return token\n")
+        test_file.write_text("content")
 
         docs = tmp_path / "docs"
         docs.mkdir()
         (docs / "doc.md").write_text("[grip:test.py]\n")
 
-        init_grippydoc(tmp_path)
-        ref = resolve_reference("test.py", tmp_path)
-        record_references(tmp_path, [ref])
-
-        # Modify with specific change
-        test_file.write_text("def login(username, password):\n    token = generate_secure_token()\n    return token\n")
-
-        args = Namespace(path=str(tmp_path), diff=True)
+        args = Namespace(path=str(tmp_path))
         result = cmd_check(args)
 
         captured = capsys.readouterr()
         assert result == 1
-        assert "gen()" in captured.out
-        assert "generate_secure_token()" in captured.out
+        assert "unrecorded" in captured.out.lower()
+        assert "test.py" in captured.out
+
+    def test_check_all_ok(self, tmp_path, capsys):
+        # Setup
+        test_file = tmp_path / "test.py"
+        test_file.write_text("content")
+
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "doc.md").write_text("[grip:test.py]\n")
+
+        # Record
+        record_references(tmp_path)
+
+        args = Namespace(path=str(tmp_path))
+        result = cmd_check(args)
+
+        captured = capsys.readouterr()
+        assert result == 0
+        assert "All documentation references are up to date." in captured.out
+
+
+class TestCmdStatus:
+    """Tests for cmd_status function."""
+
+    def test_status_shows_states(self, tmp_path, capsys):
+        # Setup: one OK, one CHANGED, one MISSING, one UNRECORDED
+        ok_file = tmp_path / "ok.py"
+        ok_file.write_text("ok content")
+
+        changed_file = tmp_path / "changed.py"
+        changed_file.write_text("original")
+
+        unrecorded_file = tmp_path / "unrecorded.py"
+        unrecorded_file.write_text("content")
+
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "doc.md").write_text(
+            "[grip:ok.py]\n"
+            "[grip:changed.py]\n"
+            "[grip:missing.py]\n"
+            "[grip:unrecorded.py]\n"
+        )
+
+        # Record first two (ok and changed)
+        record_references(tmp_path)
+
+        # Now modify changed.py
+        changed_file.write_text("modified")
+
+        # Manually add an unrecorded reference by editing the file
+        # We need to re-read the recorded content and append unrecorded ref
+        content = (docs / "doc.md").read_text()
+        # The record call above would have written hashes for ok.py, changed.py
+        # but missing.py would have been an error (no file), and unrecorded.py got a hash.
+        # Let's set up more carefully:
+
+        # Reset: create a fresh scenario
+        (docs / "doc.md").write_text("")
+        ok_file.write_text("ok content")
+        changed_file.write_text("original")
+
+        # First write and record ok.py and changed.py
+        (docs / "doc.md").write_text("[grip:ok.py]\n[grip:changed.py]\n")
+        record_references(tmp_path)
+
+        # Now modify changed.py
+        changed_file.write_text("modified")
+
+        # Add unrecorded and missing refs (manually, without recording)
+        recorded_content = (docs / "doc.md").read_text()
+        (docs / "doc.md").write_text(
+            recorded_content + "[grip:unrecorded.py]\n[grip:missing.py]\n"
+        )
+
+        args = Namespace(path=str(tmp_path))
+        result = cmd_status(args)
+
+        captured = capsys.readouterr()
+        assert result == 0
+        assert "[OK]" in captured.out
+        assert "[CHANGED]" in captured.out
+        assert "[MISSING]" in captured.out
+        assert "[UNRECORDED]" in captured.out

@@ -22,13 +22,7 @@ pip install -e .
 
 ## Quick Start
 
-### 1. Initialize GrippyDoc
-
-```bash
-grippydoc init
-```
-
-### 2. Reference Code in Your Docs
+### 1. Reference Code in Your Docs
 
 In your Markdown files, add grip references to code:
 
@@ -44,13 +38,19 @@ For the full module, see:
 [grip:src/auth.py]
 ```
 
-### 3. Record the Current State
+### 2. Record the Current State
 
 ```bash
 grippydoc record
 ```
 
-### 4. Check for Drift
+This updates your markdown files in-place with content hashes:
+
+```markdown
+[grip:src/auth.py:10-25 @a1b2c3d4e5f6g7h8]
+```
+
+### 3. Check for Drift
 
 ```bash
 grippydoc check
@@ -58,6 +58,7 @@ grippydoc check
 
 If any referenced code has changed since the last `record`, GrippyDoc will:
 - List all stale documentation references
+- List any unrecorded references (missing hashes)
 - Exit with code 1 (useful for CI/CD)
 
 ## Reference Syntax
@@ -71,6 +72,8 @@ If any referenced code has changed since the last `record`, GrippyDoc will:
 | `[grip:path/to/file.py#ClassName]` | Track class by name |
 | `[grip:path/to/file.py#ClassName.method]` | Track method by name |
 | `[grip:path/to/file.py#CONSTANT]` | Track top-level variable |
+
+After recording, hashes are appended inline: `[grip:path/to/file.py:42-58 @a1b2c3d4]`
 
 ### Symbol References (Python only)
 
@@ -121,13 +124,10 @@ Symbol references support:
                           └────────┬─────────┘
                                    │ hashes lines 10-15
                                    ▼
-                     ┌─────────────────────────────┐
-                     │  .grippydoc/manifest.json   │
-                     │  ┌───────────────────────┐  │
-                     │  │ "src/auth.py:10-15":  │  │
-                     │  │   "hash": "a1b2c3..." │  │
-                     │  └───────────────────────┘  │
-                     └─────────────────────────────┘
+                     ┌──────────────────────────────────┐
+                     │  docs/auth.md (updated in-place) │
+                     │  [grip:src/auth.py:10-15 @a1b2]  │
+                     └──────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                       CHECK PHASE (CI/CD)                           │
@@ -170,14 +170,14 @@ docs-check:
 
 | Command | Description |
 |---------|-------------|
-| `grippydoc init` | Initialize GrippyDoc in the current directory |
-| `grippydoc record` | Scan docs and record hashes of referenced code |
+| `grippydoc record` | Scan docs and record hashes of referenced code inline |
 | `grippydoc check` | Compare current code against recorded hashes |
 | `grippydoc status` | Show status of all tracked references |
 
 ## Why GrippyDoc?
 
 - **Zero source code changes** - References live in your docs, not your code
+- **No extra files** - Hashes are stored inline in your markdown
 - **Simple syntax** - Just `[grip:file:lines]` in Markdown
 - **CI/CD ready** - Exit code 1 on stale docs
 - **Lightweight** - No dependencies, pure Python
