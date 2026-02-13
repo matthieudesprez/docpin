@@ -113,37 +113,12 @@ class TestCmdStatus:
         changed_file = tmp_path / "changed.py"
         changed_file.write_text("original")
 
-        unrecorded_file = tmp_path / "unrecorded.py"
-        unrecorded_file.write_text("content")
+        (tmp_path / "unrecorded.py").write_text("content")
 
         docs = tmp_path / "docs"
         docs.mkdir()
-        (docs / "doc.md").write_text(
-            "[grip:ok.py]\n"
-            "[grip:changed.py]\n"
-            "[grip:missing.py]\n"
-            "[grip:unrecorded.py]\n"
-        )
 
-        # Record first two (ok and changed)
-        record_references(tmp_path)
-
-        # Now modify changed.py
-        changed_file.write_text("modified")
-
-        # Manually add an unrecorded reference by editing the file
-        # We need to re-read the recorded content and append unrecorded ref
-        content = (docs / "doc.md").read_text()
-        # The record call above would have written hashes for ok.py, changed.py
-        # but missing.py would have been an error (no file), and unrecorded.py got a hash.
-        # Let's set up more carefully:
-
-        # Reset: create a fresh scenario
-        (docs / "doc.md").write_text("")
-        ok_file.write_text("ok content")
-        changed_file.write_text("original")
-
-        # First write and record ok.py and changed.py
+        # Record ok.py and changed.py
         (docs / "doc.md").write_text("[grip:ok.py]\n[grip:changed.py]\n")
         record_references(tmp_path)
 

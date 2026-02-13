@@ -1,7 +1,6 @@
 """Tests for the manifest module."""
 
 from grippydoc.manifest import check_references, record_references
-from grippydoc.resolver import resolve_reference
 
 
 class TestCheckReferences:
