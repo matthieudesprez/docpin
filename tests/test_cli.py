@@ -31,7 +31,7 @@ class TestCmdRecord:
         (docs / "doc.md").write_text("[grip:nonexistent.py]\n")
 
         args = Namespace(path=str(tmp_path))
-        result = cmd_record(args)
+        cmd_record(args)
 
         captured = capsys.readouterr()
         assert "Warning" in captured.out
