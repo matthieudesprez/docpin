@@ -1,10 +1,10 @@
-# GrippyDoc vs Swimm.io
+# docpin vs Swimm.io
 
-A comparison of GrippyDoc with [Swimm.io](https://swimm.io), a popular documentation platform, and what would be needed to fully replace it.
+A comparison of docpin with [Swimm.io](https://swimm.io), a popular documentation platform, and what would be needed to fully replace it.
 
 ## Feature Comparison
 
-| Feature | GrippyDoc | Swimm.io |
+| Feature | docpin | Swimm.io |
 |---------|:---------:|:--------:|
 | Detect code/doc drift | Yes | Yes |
 | CI/CD integration | Yes | Yes |
@@ -22,9 +22,9 @@ A comparison of GrippyDoc with [Swimm.io](https://swimm.io), a popular documenta
 | Git-based storage | Yes | Yes |
 | Works offline | Yes | Partial |
 
-## When to Use GrippyDoc
+## When to Use docpin
 
-GrippyDoc is a good fit if you:
+docpin is a good fit if you:
 
 - Want a **simple, lightweight** solution
 - Only need **drift detection** (not a full doc platform)
@@ -45,25 +45,25 @@ Swimm is a better fit if you:
 
 ## What's Missing to Replace Swimm
 
-To fully replace Swimm.io, GrippyDoc would need:
+To fully replace Swimm.io, docpin would need:
 
 ### High Priority
 
 1. **Link Validation**
-   - Verify all `[grip:id]` references point to existing blocks
+   - Verify all `[pin:id]` references point to existing blocks
    - Catch orphaned links (block was deleted)
-   - Catch typos in grip IDs
+   - Catch typos in pin IDs
 
 2. **Watch Mode**
-   - `grippydoc watch` for local development
+   - `docpin watch` for local development
    - Live feedback as you edit code
 
 ### Medium Priority
 
 3. **IDE Extensions**
-   - VSCode extension to insert grip tags easily
-   - Highlight grip tags and links
-   - Jump-to-definition from `[grip:id]` to code block
+   - VSCode extension to insert pin tags easily
+   - Highlight pin tags and links
+   - Jump-to-definition from `[pin:id]` to code block
 
 4. **Smarter Hashing**
    - Ignore whitespace-only changes
@@ -79,7 +79,7 @@ To fully replace Swimm.io, GrippyDoc would need:
 
 6. **Doc Generation**
    - Auto-generate stub documentation for unlinked blocks
-   - List all grip blocks with their locations
+   - List all pin blocks with their locations
 
 7. **Multi-repo Support**
    - Track blocks across multiple repositories
@@ -87,11 +87,11 @@ To fully replace Swimm.io, GrippyDoc would need:
 
 8. **Web UI**
    - Simple dashboard showing doc health
-   - Browse all grip links and their status
+   - Browse all pin links and their status
 
 ## Roadmap
 
-GrippyDoc aims to stay **simple and focused**. The goal is not to replicate all of Swimm's features, but to provide a solid open-source foundation for documentation drift detection.
+docpin aims to stay **simple and focused**. The goal is not to replicate all of Swimm's features, but to provide a solid open-source foundation for documentation drift detection.
 
 Planned additions:
 - [ ] Link validation (orphan detection)

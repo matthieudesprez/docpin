@@ -1,4 +1,4 @@
-"""Command-line interface for GrippyDoc."""
+"""Command-line interface for docpin."""
 
 import argparse
 import sys
@@ -24,11 +24,11 @@ def cmd_record(args: argparse.Namespace) -> int:
         print(f"Warning: {len(errors)} reference(s) could not be resolved:")
         for err in errors:
             rel_doc = Path(err.doc_file).relative_to(root)
-            print(f"  {rel_doc}:{err.line_number} -> [grip:{err.reference}]")
+            print(f"  {rel_doc}:{err.line_number} -> [pin:{err.reference}]")
         print()
 
     if count == 0 and not errors:
-        print("No grip references found in markdown files.")
+        print("No pin references found in markdown files.")
         return 0
 
     print(f"Recorded {count} reference(s).")
@@ -48,7 +48,7 @@ def cmd_check(args: argparse.Namespace) -> int:
         print(f"Found {len(broken)} broken reference(s):\n")
         for ref in broken:
             rel_doc = Path(ref.doc_file).relative_to(root)
-            print(f"  [grip:{ref.reference}]")
+            print(f"  [pin:{ref.reference}]")
             print(f"    Location: {rel_doc}:{ref.doc_line}")
             print(f"    Error: {ref.reason}")
             print()
@@ -58,7 +58,7 @@ def cmd_check(args: argparse.Namespace) -> int:
         print(f"Found {len(stale)} stale reference(s):\n")
         for ref in stale:
             rel_doc = Path(ref.doc_file).relative_to(root)
-            print(f"  [grip:{ref.reference}]")
+            print(f"  [pin:{ref.reference}]")
             print(f"    Location: {rel_doc}:{ref.doc_line}")
             print(f"    Hash: {ref.old_hash[:8]}... -> {ref.new_hash[:8]}...")
             print()
@@ -68,12 +68,12 @@ def cmd_check(args: argparse.Namespace) -> int:
         print(f"Found {len(unrecorded)} unrecorded reference(s):\n")
         for ref in unrecorded:
             rel_doc = Path(ref.doc_file).relative_to(root)
-            print(f"  [grip:{ref.reference}]")
+            print(f"  [pin:{ref.reference}]")
             print(f"    Location: {rel_doc}:{ref.doc_line}")
             print()
 
     if has_issues:
-        print("Run 'grippydoc record' to update hashes.")
+        print("Run 'docpin record' to update hashes.")
         return 1
 
     print("All documentation references are up to date.")
@@ -87,7 +87,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     doc_refs = scan_markdown_files(root)
 
     if not doc_refs:
-        print("No grip references found in markdown files.")
+        print("No pin references found in markdown files.")
         return 0
 
     for doc_ref in doc_refs:
@@ -113,7 +113,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 def main() -> int:
     """Main entry point for the CLI."""
     parser = argparse.ArgumentParser(
-        prog="grippydoc",
+        prog="docpin",
         description="Prevent documentation drift by linking Markdown to code.",
     )
     parser.add_argument(

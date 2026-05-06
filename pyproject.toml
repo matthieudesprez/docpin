@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "grippydoc"
+name = "docpin"
 version = "0.3.0"
-description = "Prevent documentation drift by linking Markdown to code blocks"
+description = "Pin your docs to your code. Prevent documentation drift by linking Markdown to code blocks."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
 authors = [
-    {name = "GrippyDoc Contributors"}
+    {name = "docpin Contributors"}
 ]
 keywords = ["documentation", "cli", "developer-tools", "markdown", "drift"]
 classifiers = [
@@ -32,11 +32,11 @@ classifiers = [
 dev = ["pytest>=7.0", "ruff>=0.4"]
 
 [project.scripts]
-grippydoc = "grippydoc.cli:main"
+docpin = "docpin.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/matthieudesprez/grippydoc"
-Repository = "https://github.com/matthieudesprez/grippydoc"
+Homepage = "https://github.com/matthieudesprez/docpin"
+Repository = "https://github.com/matthieudesprez/docpin"
 
 [tool.setuptools.packages.find]
 where = ["."]

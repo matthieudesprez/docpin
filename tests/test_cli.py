@@ -2,8 +2,8 @@
 
 from argparse import Namespace
 
-from grippydoc.cli import cmd_check, cmd_record, cmd_status
-from grippydoc.manifest import record_references
+from docpin.cli import cmd_check, cmd_record, cmd_status
+from docpin.manifest import record_references
 
 
 class TestCmdRecord:
@@ -16,7 +16,7 @@ class TestCmdRecord:
 
         docs = tmp_path / "docs"
         docs.mkdir()
-        (docs / "doc.md").write_text("[grip:test.py]\n")
+        (docs / "doc.md").write_text("[pin:test.py]\n")
 
         args = Namespace(path=str(tmp_path))
         result = cmd_record(args)
@@ -28,7 +28,7 @@ class TestCmdRecord:
     def test_record_warns_on_unresolvable(self, tmp_path, capsys):
         docs = tmp_path / "docs"
         docs.mkdir()
-        (docs / "doc.md").write_text("[grip:nonexistent.py]\n")
+        (docs / "doc.md").write_text("[pin:nonexistent.py]\n")
 
         args = Namespace(path=str(tmp_path))
         cmd_record(args)
@@ -48,7 +48,7 @@ class TestCmdCheck:
 
         docs = tmp_path / "docs"
         docs.mkdir()
-        (docs / "doc.md").write_text("[grip:test.py]\n")
+        (docs / "doc.md").write_text("[pin:test.py]\n")
 
         # Record first
         record_references(tmp_path)
@@ -63,7 +63,7 @@ class TestCmdCheck:
         assert result == 1
         assert "stale" in captured.out.lower()
         assert "test.py" in captured.out
-        assert "Run 'grippydoc record' to update hashes." in captured.out
+        assert "Run 'docpin record' to update hashes." in captured.out
 
     def test_check_unrecorded_output(self, tmp_path, capsys):
         # Setup: file exists, no hash recorded
@@ -72,7 +72,7 @@ class TestCmdCheck:
 
         docs = tmp_path / "docs"
         docs.mkdir()
-        (docs / "doc.md").write_text("[grip:test.py]\n")
+        (docs / "doc.md").write_text("[pin:test.py]\n")
 
         args = Namespace(path=str(tmp_path))
         result = cmd_check(args)
@@ -89,7 +89,7 @@ class TestCmdCheck:
 
         docs = tmp_path / "docs"
         docs.mkdir()
-        (docs / "doc.md").write_text("[grip:test.py]\n")
+        (docs / "doc.md").write_text("[pin:test.py]\n")
 
         # Record
         record_references(tmp_path)
@@ -119,7 +119,7 @@ class TestCmdStatus:
         docs.mkdir()
 
         # Record ok.py and changed.py
-        (docs / "doc.md").write_text("[grip:ok.py]\n[grip:changed.py]\n")
+        (docs / "doc.md").write_text("[pin:ok.py]\n[pin:changed.py]\n")
         record_references(tmp_path)
 
         # Now modify changed.py
@@ -128,7 +128,7 @@ class TestCmdStatus:
         # Add unrecorded and missing refs (manually, without recording)
         recorded_content = (docs / "doc.md").read_text()
         (docs / "doc.md").write_text(
-            recorded_content + "[grip:unrecorded.py]\n[grip:missing.py]\n"
+            recorded_content + "[pin:unrecorded.py]\n[pin:missing.py]\n"
         )
 
         args = Namespace(path=str(tmp_path))

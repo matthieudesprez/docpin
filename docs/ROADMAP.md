@@ -1,23 +1,23 @@
-# GrippyDoc Roadmap
+# docpin Roadmap
 
-Future improvements and features planned for GrippyDoc.
+Future improvements and features planned for docpin.
 
 ## Reference Types
 
 ### Currently Supported
 
-- [x] `[grip:file.py]` - Whole file
-- [x] `[grip:file.py:42]` - Single line
-- [x] `[grip:file.py:42-58]` - Line range
+- [x] `[pin:file.py]` - Whole file
+- [x] `[pin:file.py:42]` - Single line
+- [x] `[pin:file.py:42-58]` - Line range
 
 ### Planned
 
-- [x] `[grip:file.py#function_name]` - Function by name
-- [x] `[grip:file.py#ClassName]` - Class by name
-- [x] `[grip:file.py#ClassName.method]` - Method by name
-- [x] `[grip:file.py#CONSTANT]` - Top-level variable/constant
-- [ ] `[grip:file.py?/regex/]` - Regex pattern match
-- [ ] `[grip:src/**/*.py]` - Glob patterns (multiple files)
+- [x] `[pin:file.py#function_name]` - Function by name
+- [x] `[pin:file.py#ClassName]` - Class by name
+- [x] `[pin:file.py#ClassName.method]` - Method by name
+- [x] `[pin:file.py#CONSTANT]` - Top-level variable/constant
+- [ ] `[pin:file.py?/regex/]` - Regex pattern match
+- [ ] `[pin:src/**/*.py]` - Glob patterns (multiple files)
 
 ## Symbol Resolution
 
@@ -36,14 +36,14 @@ To support function/class/method references without modifying source code:
 
 ## Output & Integration
 
-- [ ] **JSON output** - `grippydoc check --format json` for tooling
+- [ ] **JSON output** - `docpin check --format json` for tooling
 - [ ] **GitHub Actions annotations** - Inline PR comments on stale docs
-- [ ] **Watch mode** - `grippydoc watch` for local development
+- [ ] **Watch mode** - `docpin watch` for local development
 
 ## Developer Experience
 
 - [ ] **VSCode extension**
-  - Syntax highlighting for `[grip:...]`
+  - Syntax highlighting for `[pin:...]`
   - Autocomplete file paths and symbols
   - Jump-to-definition from reference to code
   - Inline status indicators (OK/STALE)
@@ -54,7 +54,7 @@ To support function/class/method references without modifying source code:
 ## Validation
 
 - [x] **Orphan detection** - Warn when manifest entries are no longer referenced in docs
-- [ ] **Unused reference detection** - Find grip references that no doc uses
+- [ ] **Unused reference detection** - Find pin references that no doc uses
 - [ ] **Overlapping ranges** - Warn when multiple docs reference same code
 
 ## Smart Hashing
@@ -67,7 +67,7 @@ To support function/class/method references without modifying source code:
 ## Configuration
 
 ```yaml
-# .grippydoc/config.yaml (future)
+# .docpin/config.yaml (future)
 version: 2
 sensitivity: normal
 ignore_patterns:
@@ -81,7 +81,7 @@ symbol_languages:
 
 ## Not Planned
 
-These features are out of scope to keep GrippyDoc simple and focused:
+These features are out of scope to keep docpin simple and focused:
 
 - Rich editing UI (use Swimm.io for that)
 - Cloud/hosted platform
@@ -89,7 +89,7 @@ These features are out of scope to keep GrippyDoc simple and focused:
 - Auto-generated documentation
 - Documentation hosting
 
-GrippyDoc aims to be a **simple, focused CLI tool** for drift detection.
+docpin aims to be a **simple, focused CLI tool** for drift detection.
 
 ## Contributing
 

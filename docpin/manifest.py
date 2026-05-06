@@ -41,7 +41,7 @@ def record_references(
 ) -> tuple[int, list[DocReference]]:
     """Record code reference hashes inline in markdown files.
 
-    Scans all markdown files for grip references, resolves each one,
+    Scans all markdown files for pin references, resolves each one,
     and writes the hash back into the markdown.
 
     Returns:

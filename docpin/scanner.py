@@ -1,4 +1,4 @@
-"""Scanner for finding grip references in Markdown files."""
+"""Scanner for finding pin references in Markdown files."""
 
 from __future__ import annotations
 
@@ -9,16 +9,16 @@ from pathlib import Path
 
 @dataclass
 class DocReference:
-    """Represents a grip reference found in a Markdown file."""
+    """Represents a pin reference found in a Markdown file."""
     reference: str      # The reference string (e.g., "src/auth.py:10-20")
     doc_file: str       # Path to the markdown file
     line_number: int    # Line number in the markdown file
     recorded_hash: str | None = None  # Inline hash if present (e.g., "a1b2c3d4")
 
 
-# Pattern to match [grip:reference] syntax in markdown
-# Captures everything between [grip: and ]
-GRIP_PATTERN = re.compile(r'\[grip:([^\]]+)\]')
+# Pattern to match [pin:reference] syntax in markdown
+# Captures everything between [pin: and ]
+PIN_PATTERN = re.compile(r'\[pin:([^\]]+)\]')
 
 # Pattern to match fenced code block delimiters (``` or ~~~, 3+ chars)
 CODE_FENCE_PATTERN = re.compile(r'^(`{3,}|~{3,})')
@@ -28,7 +28,7 @@ INLINE_CODE_PATTERN = re.compile(r'`[^`]+`')
 
 
 def parse_markdown(file_path: Path) -> list[DocReference]:
-    """Parse a Markdown file and extract all grip references.
+    """Parse a Markdown file and extract all pin references.
 
     Skips references inside:
     - Fenced code blocks (```)
@@ -53,10 +53,10 @@ def parse_markdown(file_path: Path) -> list[DocReference]:
         if in_code_block:
             continue
 
-        # Remove inline code before searching for grip references
+        # Remove inline code before searching for pin references
         line_without_code = INLINE_CODE_PATTERN.sub('', line)
 
-        for match in GRIP_PATTERN.finditer(line_without_code):
+        for match in PIN_PATTERN.finditer(line_without_code):
             raw = match.group(1).strip()
             if " @" in raw:
                 ref_str, hash_str = raw.rsplit(" @", 1)
@@ -77,9 +77,9 @@ def parse_markdown(file_path: Path) -> list[DocReference]:
 
 
 def update_markdown_hashes(file_path: Path, hash_map: dict[str, str]) -> int:
-    """Rewrite a markdown file in-place, updating grip reference hashes.
+    """Rewrite a markdown file in-place, updating pin reference hashes.
 
-    Replaces [grip:ref] or [grip:ref @oldhash] with [grip:ref @newhash].
+    Replaces [pin:ref] or [pin:ref @oldhash] with [pin:ref @newhash].
 
     Args:
         file_path: Path to the markdown file
@@ -114,8 +114,8 @@ def update_markdown_hashes(file_path: Path, hash_map: dict[str, str]) -> int:
                 masked[j] = ' '
         masked_line = ''.join(masked)
 
-        # Find all grip matches on the masked line (to get correct positions)
-        matches = list(GRIP_PATTERN.finditer(masked_line))
+        # Find all pin matches on the masked line (to get correct positions)
+        matches = list(PIN_PATTERN.finditer(masked_line))
         if not matches:
             continue
 
@@ -132,7 +132,7 @@ def update_markdown_hashes(file_path: Path, hash_map: dict[str, str]) -> int:
                 continue
 
             new_hash = hash_map[ref_str]
-            replacement = f"[grip:{ref_str} @{new_hash}]"
+            replacement = f"[pin:{ref_str} @{new_hash}]"
             new_line = new_line[:m.start()] + replacement + new_line[m.end():]
             updated_count += 1
 
@@ -146,7 +146,7 @@ def scan_markdown_files(
     root: Path,
     exclude_dirs: list[str] | None = None,
 ) -> list[DocReference]:
-    """Scan a directory recursively for grip references in Markdown files."""
+    """Scan a directory recursively for pin references in Markdown files."""
     if exclude_dirs is None:
         exclude_dirs = [
             ".git", ".venv", "venv",

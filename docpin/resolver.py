@@ -22,7 +22,7 @@ class CodeReference:
     hash: str
 
 
-# Pattern to parse grip references:
+# Pattern to parse pin references:
 # - file.py          -> whole file
 # - file.py:42       -> single line
 # - file.py:42-58    -> line range
