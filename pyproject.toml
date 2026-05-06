@@ -35,8 +35,8 @@ dev = ["pytest>=7.0", "ruff>=0.4"]
 grippydoc = "grippydoc.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/grippydoc/grippydoc"
-Repository = "https://github.com/grippydoc/grippydoc"
+Homepage = "https://github.com/matthieudesprez/grippydoc"
+Repository = "https://github.com/matthieudesprez/grippydoc"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -15,7 +15,7 @@ pip install grippydoc
 Or install from source:
 
 ```bash
-git clone https://github.com/grippydoc/grippydoc.git
+git clone https://github.com/matthieudesprez/grippydoc.git
 cd grippydoc
 pip install -e .
 ```
@@ -148,7 +148,9 @@ Symbol references support:
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## CI/CD Integration
+## Integration
+
+`grippydoc check` is a single command that exits non-zero on stale docs. Wire it in wherever you run other checks.
 
 **GitHub Actions:**
 ```yaml
@@ -165,6 +167,14 @@ docs-check:
     - pip install grippydoc
     - grippydoc check
 ```
+
+**Makefile:**
+```makefile
+check-docs:
+	grippydoc check docs/
+```
+
+Pass a path to scope the check (e.g. `grippydoc check docs/`) if you only want to scan part of the repo.
 
 ## Commands
 

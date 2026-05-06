@@ -38,7 +38,6 @@ To support function/class/method references without modifying source code:
 
 - [ ] **JSON output** - `grippydoc check --format json` for tooling
 - [ ] **GitHub Actions annotations** - Inline PR comments on stale docs
-- [ ] **Diff display** - Show what changed in the code, not just that it changed
 - [ ] **Watch mode** - `grippydoc watch` for local development
 
 ## Developer Experience
