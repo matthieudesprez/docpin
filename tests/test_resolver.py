@@ -3,7 +3,7 @@
 
 import pytest
 
-from grippydoc.resolver import parse_reference, resolve_reference, resolve_symbol
+from docpin.resolver import parse_reference, resolve_reference, resolve_symbol
 
 
 class TestParseReference:

@@ -1,6 +1,6 @@
 """Tests for the hasher module."""
 
-from grippydoc.hasher import compute_hash, normalize_content
+from docpin.hasher import compute_hash, normalize_content
 
 
 class TestNormalizeContent:

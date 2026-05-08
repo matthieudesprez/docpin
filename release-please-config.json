@@ -3,12 +3,12 @@
   "packages": {
     ".": {
       "release-type": "python",
-      "package-name": "grippydoc",
+      "package-name": "docpin",
       "include-component-in-tag": false,
       "include-v-in-tag": true,
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
-        "grippydoc/__init__.py"
+        "docpin/__init__.py"
       ]
     }
   }

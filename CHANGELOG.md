@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Features
 
-* add code diff and doc context to `grippydoc check --diff` ([7f86350](https://github.com/matthieudesprez/grippydoc/commit/7f8635096737dbee1b1073546672509f8c27acee))
 * replace manifest with inline hashes in markdown ([988988a](https://github.com/matthieudesprez/grippydoc/commit/988988a9c52214f4b478033dee75eee2bc4c1b20))
 
 
@@ -36,7 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Features
 
 * Initial release
-* `grippydoc init` - Initialize tracking in a project
 * `grippydoc record` - Record code reference hashes
 * `grippydoc check` - Check for stale, broken, and orphaned references
 * `grippydoc status` - Show status of tracked references

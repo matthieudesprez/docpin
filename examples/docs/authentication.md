@@ -6,7 +6,7 @@ This document describes how authentication works in the application.
 
 The authentication process is handled by the `authenticate` function:
 
-[grip:examples/auth.py:4-10]
+[pin:examples/auth.py:4-10]
 
 Users provide their username and password, which are verified against stored credentials.
 
@@ -14,7 +14,7 @@ Users provide their username and password, which are verified against stored cre
 
 After successful authentication, a session is created:
 
-[grip:examples/auth.py:13-20]
+[pin:examples/auth.py:13-20]
 
 Sessions include a secure token and expiration time.
 
@@ -22,4 +22,4 @@ Sessions include a secure token and expiration time.
 
 For complete details, see the auth module:
 
-[grip:examples/auth.py]
+[pin:examples/auth.py]

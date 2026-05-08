@@ -1,6 +1,6 @@
 """Tests for the manifest module."""
 
-from grippydoc.manifest import check_references, record_references
+from docpin.manifest import check_references, record_references
 
 
 class TestCheckReferences:
@@ -13,7 +13,7 @@ class TestCheckReferences:
 
         docs = tmp_path / "docs"
         docs.mkdir()
-        (docs / "doc.md").write_text("[grip:test.py]\n")
+        (docs / "doc.md").write_text("[pin:test.py]\n")
 
         # Record to get the hash
         record_references(tmp_path)
@@ -35,7 +35,7 @@ class TestCheckReferences:
         # Setup: markdown pointing to non-existent file with hash
         docs = tmp_path / "docs"
         docs.mkdir()
-        (docs / "doc.md").write_text("[grip:nonexistent.py @abc123]\n")
+        (docs / "doc.md").write_text("[pin:nonexistent.py @abc123]\n")
 
         stale, broken, unrecorded = check_references(tmp_path)
 
@@ -49,7 +49,7 @@ class TestCheckReferences:
 
         docs = tmp_path / "docs"
         docs.mkdir()
-        (docs / "doc.md").write_text("[grip:test.py]\n")
+        (docs / "doc.md").write_text("[pin:test.py]\n")
 
         stale, broken, unrecorded = check_references(tmp_path)
 
@@ -65,7 +65,7 @@ class TestCheckReferences:
 
         docs = tmp_path / "docs"
         docs.mkdir()
-        (docs / "doc.md").write_text("[grip:test.py]\n")
+        (docs / "doc.md").write_text("[pin:test.py]\n")
 
         # Record to get correct hash
         record_references(tmp_path)
@@ -88,7 +88,7 @@ class TestRecordReferences:
 
         docs = tmp_path / "docs"
         docs.mkdir()
-        (docs / "doc.md").write_text("[grip:test.py]\n")
+        (docs / "doc.md").write_text("[pin:test.py]\n")
 
         count, errors = record_references(tmp_path)
 
@@ -98,7 +98,7 @@ class TestRecordReferences:
         # Verify the markdown was updated with a hash
         content = (docs / "doc.md").read_text()
         assert " @" in content
-        assert content.startswith("[grip:test.py @")
+        assert content.startswith("[pin:test.py @")
 
     def test_record_updates_existing_hashes(self, tmp_path):
         # Setup
@@ -107,7 +107,7 @@ class TestRecordReferences:
 
         docs = tmp_path / "docs"
         docs.mkdir()
-        (docs / "doc.md").write_text("[grip:test.py]\n")
+        (docs / "doc.md").write_text("[pin:test.py]\n")
 
         # First record
         record_references(tmp_path)
@@ -128,7 +128,7 @@ class TestRecordReferences:
         # Setup: markdown pointing to non-existent file
         docs = tmp_path / "docs"
         docs.mkdir()
-        (docs / "doc.md").write_text("[grip:nonexistent.py]\n")
+        (docs / "doc.md").write_text("[pin:nonexistent.py]\n")
 
         count, errors = record_references(tmp_path)
 

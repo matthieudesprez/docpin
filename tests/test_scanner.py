@@ -1,15 +1,15 @@
 """Tests for the scanner module."""
 
 
-from grippydoc.scanner import parse_markdown, scan_markdown_files, update_markdown_hashes
+from docpin.scanner import parse_markdown, scan_markdown_files, update_markdown_hashes
 
 
 class TestParseMarkdown:
     """Tests for parse_markdown function."""
 
-    def test_finds_grip_reference(self, tmp_path):
+    def test_finds_pin_reference(self, tmp_path):
         md_file = tmp_path / "test.md"
-        md_file.write_text("# Header\n\n[grip:src/auth.py:10-20]\n")
+        md_file.write_text("# Header\n\n[pin:src/auth.py:10-20]\n")
 
         refs = parse_markdown(md_file)
 
@@ -21,11 +21,11 @@ class TestParseMarkdown:
         md_file = tmp_path / "test.md"
         md_file.write_text("""# Header
 
-[grip:src/auth.py]
+[pin:src/auth.py]
 
 Some text.
 
-[grip:src/utils.py:1-10]
+[pin:src/utils.py:1-10]
 """)
 
         refs = parse_markdown(md_file)
@@ -38,13 +38,13 @@ Some text.
         md_file = tmp_path / "test.md"
         md_file.write_text("""# Header
 
-[grip:real/reference.py]
+[pin:real/reference.py]
 
 ```markdown
-[grip:example/in/code/block.py]
+[pin:example/in/code/block.py]
 ```
 
-[grip:another/real.py]
+[pin:another/real.py]
 """)
 
         refs = parse_markdown(md_file)
@@ -57,13 +57,13 @@ Some text.
         md_file = tmp_path / "test.md"
         md_file.write_text("""# Header
 
-[grip:real/reference.py]
+[pin:real/reference.py]
 
 ~~~markdown
-[grip:example/in/code/block.py]
+[pin:example/in/code/block.py]
 ~~~
 
-[grip:another/real.py]
+[pin:another/real.py]
 """)
 
         refs = parse_markdown(md_file)
@@ -76,9 +76,9 @@ Some text.
         md_file = tmp_path / "test.md"
         md_file.write_text("""# Header
 
-Use `[grip:example.py]` syntax to reference code.
+Use `[pin:example.py]` syntax to reference code.
 
-[grip:real/reference.py]
+[pin:real/reference.py]
 """)
 
         refs = parse_markdown(md_file)
@@ -88,7 +88,7 @@ Use `[grip:example.py]` syntax to reference code.
 
     def test_multiple_on_same_line(self, tmp_path):
         md_file = tmp_path / "test.md"
-        md_file.write_text("See [grip:a.py] and [grip:b.py] for details.\n")
+        md_file.write_text("See [pin:a.py] and [pin:b.py] for details.\n")
 
         refs = parse_markdown(md_file)
 
@@ -106,7 +106,7 @@ Use `[grip:example.py]` syntax to reference code.
 
     def test_no_references(self, tmp_path):
         md_file = tmp_path / "test.md"
-        md_file.write_text("# Just a normal markdown file\n\nNo grip references here.\n")
+        md_file.write_text("# Just a normal markdown file\n\nNo pin references here.\n")
 
         refs = parse_markdown(md_file)
 
@@ -114,7 +114,7 @@ Use `[grip:example.py]` syntax to reference code.
 
     def test_parses_inline_hash(self, tmp_path):
         md_file = tmp_path / "test.md"
-        md_file.write_text("[grip:src/auth.py:10-20 @a1b2c3d4]\n")
+        md_file.write_text("[pin:src/auth.py:10-20 @a1b2c3d4]\n")
 
         refs = parse_markdown(md_file)
 
@@ -124,7 +124,7 @@ Use `[grip:example.py]` syntax to reference code.
 
     def test_reference_without_hash_has_none(self, tmp_path):
         md_file = tmp_path / "test.md"
-        md_file.write_text("[grip:src/auth.py]\n")
+        md_file.write_text("[pin:src/auth.py]\n")
 
         refs = parse_markdown(md_file)
 
@@ -138,71 +138,71 @@ class TestUpdateMarkdownHashes:
 
     def test_update_adds_hash(self, tmp_path):
         md_file = tmp_path / "test.md"
-        md_file.write_text("[grip:src/auth.py]\n")
+        md_file.write_text("[pin:src/auth.py]\n")
 
         count = update_markdown_hashes(md_file, {"src/auth.py": "abc123"})
 
         assert count == 1
-        assert md_file.read_text() == "[grip:src/auth.py @abc123]\n"
+        assert md_file.read_text() == "[pin:src/auth.py @abc123]\n"
 
     def test_update_replaces_existing_hash(self, tmp_path):
         md_file = tmp_path / "test.md"
-        md_file.write_text("[grip:src/auth.py @oldhash]\n")
+        md_file.write_text("[pin:src/auth.py @oldhash]\n")
 
         count = update_markdown_hashes(md_file, {"src/auth.py": "newhash"})
 
         assert count == 1
-        assert md_file.read_text() == "[grip:src/auth.py @newhash]\n"
+        assert md_file.read_text() == "[pin:src/auth.py @newhash]\n"
 
     def test_update_skips_code_blocks(self, tmp_path):
         md_file = tmp_path / "test.md"
-        md_file.write_text("```\n[grip:src/auth.py]\n```\n")
+        md_file.write_text("```\n[pin:src/auth.py]\n```\n")
 
         count = update_markdown_hashes(md_file, {"src/auth.py": "abc123"})
 
         assert count == 0
-        assert md_file.read_text() == "```\n[grip:src/auth.py]\n```\n"
+        assert md_file.read_text() == "```\n[pin:src/auth.py]\n```\n"
 
     def test_update_skips_inline_code(self, tmp_path):
         md_file = tmp_path / "test.md"
-        md_file.write_text("Use `[grip:src/auth.py]` syntax.\n")
+        md_file.write_text("Use `[pin:src/auth.py]` syntax.\n")
 
         count = update_markdown_hashes(md_file, {"src/auth.py": "abc123"})
 
         assert count == 0
-        assert md_file.read_text() == "Use `[grip:src/auth.py]` syntax.\n"
+        assert md_file.read_text() == "Use `[pin:src/auth.py]` syntax.\n"
 
     def test_update_multiple_refs_same_line(self, tmp_path):
         md_file = tmp_path / "test.md"
-        md_file.write_text("See [grip:a.py] and [grip:b.py] here.\n")
+        md_file.write_text("See [pin:a.py] and [pin:b.py] here.\n")
 
         count = update_markdown_hashes(md_file, {"a.py": "hash_a", "b.py": "hash_b"})
 
         assert count == 2
         content = md_file.read_text()
-        assert "[grip:a.py @hash_a]" in content
-        assert "[grip:b.py @hash_b]" in content
+        assert "[pin:a.py @hash_a]" in content
+        assert "[pin:b.py @hash_b]" in content
 
     def test_update_preserves_surrounding_text(self, tmp_path):
         md_file = tmp_path / "test.md"
-        md_file.write_text("# Header\n\nSome text before.\n\n[grip:src/auth.py]\n\nSome text after.\n")
+        md_file.write_text("# Header\n\nSome text before.\n\n[pin:src/auth.py]\n\nSome text after.\n")
 
         count = update_markdown_hashes(md_file, {"src/auth.py": "abc123"})
 
         assert count == 1
         content = md_file.read_text()
-        assert content == "# Header\n\nSome text before.\n\n[grip:src/auth.py @abc123]\n\nSome text after.\n"
+        assert content == "# Header\n\nSome text before.\n\n[pin:src/auth.py @abc123]\n\nSome text after.\n"
 
     def test_update_only_updates_known_refs(self, tmp_path):
         md_file = tmp_path / "test.md"
-        md_file.write_text("[grip:known.py]\n[grip:unknown.py]\n")
+        md_file.write_text("[pin:known.py]\n[pin:unknown.py]\n")
 
         count = update_markdown_hashes(md_file, {"known.py": "abc123"})
 
         assert count == 1
         content = md_file.read_text()
-        assert "[grip:known.py @abc123]" in content
-        assert "[grip:unknown.py]" in content
+        assert "[pin:known.py @abc123]" in content
+        assert "[pin:unknown.py]" in content
 
 
 class TestScanMarkdownFiles:
@@ -210,8 +210,8 @@ class TestScanMarkdownFiles:
 
     def test_scans_directory(self, tmp_path):
         # Create markdown files
-        (tmp_path / "doc1.md").write_text("[grip:file1.py]\n")
-        (tmp_path / "doc2.md").write_text("[grip:file2.py]\n")
+        (tmp_path / "doc1.md").write_text("[pin:file1.py]\n")
+        (tmp_path / "doc2.md").write_text("[pin:file2.py]\n")
 
         refs = scan_markdown_files(tmp_path)
 
@@ -222,7 +222,7 @@ class TestScanMarkdownFiles:
     def test_scans_nested_directories(self, tmp_path):
         docs = tmp_path / "docs" / "api"
         docs.mkdir(parents=True)
-        (docs / "auth.md").write_text("[grip:src/auth.py]\n")
+        (docs / "auth.md").write_text("[pin:src/auth.py]\n")
 
         refs = scan_markdown_files(tmp_path)
 
@@ -233,10 +233,10 @@ class TestScanMarkdownFiles:
         # Create files in excluded directory
         node_modules = tmp_path / "node_modules"
         node_modules.mkdir()
-        (node_modules / "doc.md").write_text("[grip:should/be/ignored.py]\n")
+        (node_modules / "doc.md").write_text("[pin:should/be/ignored.py]\n")
 
         # Create file in included directory
-        (tmp_path / "doc.md").write_text("[grip:included.py]\n")
+        (tmp_path / "doc.md").write_text("[pin:included.py]\n")
 
         refs = scan_markdown_files(tmp_path)
 
@@ -247,10 +247,10 @@ class TestScanMarkdownFiles:
         # Create files in .venv directory
         venv = tmp_path / ".venv" / "lib"
         venv.mkdir(parents=True)
-        (venv / "README.md").write_text("[grip:should/be/ignored.py]\n")
+        (venv / "README.md").write_text("[pin:should/be/ignored.py]\n")
 
         # Create file in included directory
-        (tmp_path / "doc.md").write_text("[grip:included.py]\n")
+        (tmp_path / "doc.md").write_text("[pin:included.py]\n")
 
         refs = scan_markdown_files(tmp_path)
 
@@ -258,8 +258,8 @@ class TestScanMarkdownFiles:
         assert refs[0].reference == "included.py"
 
     def test_only_scans_md_files(self, tmp_path):
-        (tmp_path / "doc.md").write_text("[grip:found.py]\n")
-        (tmp_path / "doc.txt").write_text("[grip:ignored.py]\n")
+        (tmp_path / "doc.md").write_text("[pin:found.py]\n")
+        (tmp_path / "doc.txt").write_text("[pin:ignored.py]\n")
 
         refs = scan_markdown_files(tmp_path)
 
