@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0](https://github.com/matthieudesprez/docpin/compare/v0.3.0...v1.0.0) (2026-05-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* Package renamed from grippydoc to docpin. Users must reinstall (pip uninstall grippydoc; pip install docpin) and migrate existing references with sed -i 's/\[grip:/[pin:/g' over their markdown files. The grippydoc package on PyPI will not receive further updates.
+
+### Features
+
+* rename project to docpin ([5f0b121](https://github.com/matthieudesprez/docpin/commit/5f0b121d21c38aa64b4b1ab0fed4819a401f9609))
+
+
+### Bug Fixes
+
+* correct inaccurate docs and project metadata ([da7fa94](https://github.com/matthieudesprez/docpin/commit/da7fa9459ea780bd911c1f442026fe69dff38c91))
+* remove unused variable in test_record_warns_on_unresolvable ([662f84f](https://github.com/matthieudesprez/docpin/commit/662f84fff4dc2ad48a06f5466b74ea4f85a5d88d))
+
 ## [0.3.0](https://github.com/matthieudesprez/grippydoc/compare/v0.2.0...v0.3.0) (2026-02-13)
 
 
