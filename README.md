@@ -1,65 +1,30 @@
 # docpin
 
-Prevent documentation drift by linking Markdown files to specific code.
+Pin your Markdown to specific code. docpin fails CI when the referenced code changes but the docs don't.
 
-docpin tracks code references in your documentation and alerts you when the code changes but the docs haven't been updated. Perfect for CI/CD pipelines to catch stale docs before they reach production.
-
-*Pin your docs to your code.*
-
-## Installation
+## Install
 
 ```bash
 pip install docpin
 ```
 
-Or install from source:
+## Usage
 
-```bash
-git clone https://github.com/matthieudesprez/docpin.git
-cd docpin
-pip install -e .
-```
-
-## Quick Start
-
-### 1. Reference Code in Your Docs
-
-In your Markdown files, add pin references to code:
+Add `[pin:...]` references to your Markdown:
 
 ```markdown
-# Authentication
-
-The login function handles user authentication:
+The login function handles authentication:
 
 [pin:src/auth.py:10-25]
-
-For the full module, see:
-
-[pin:src/auth.py]
 ```
 
-### 2. Record the Current State
-
-```bash
-docpin record
-```
-
-This updates your markdown files in-place with content hashes:
+Run `docpin record`. docpin writes a content hash back into the Markdown, in place:
 
 ```markdown
 [pin:src/auth.py:10-25 @a1b2c3d4e5f6g7h8]
 ```
 
-### 3. Check for Drift
-
-```bash
-docpin check
-```
-
-If any referenced code has changed since the last `record`, docpin will:
-- List all stale documentation references
-- List any unrecorded references (missing hashes)
-- Exit with code 1 (useful for CI/CD)
+In CI, run `docpin check`. It exits 1 if any referenced code has changed since the last record, listing the stale and unrecorded references.
 
 ## Reference Syntax
 
@@ -111,7 +76,7 @@ Symbol references support:
 │  ┌────────────────────────┐         ┌────────────────────────┐      │
 │  │ ## Login Flow          │         │ 10: def login(user):   │      │
 │  │                        │         │ 11:     validate(user) │      │
-│  │ [pin:src/auth.py:10-15] ───────▶│ 12:     token = gen()  │      │
+│  │ [pin:src/auth.py:10-15]├────────▶│ 12:     token = gen()  │      │
 │  │                        │         │ 13:     return token   │      │
 │  │ The login function...  │         │ ...                    │      │
 │  └────────────────────────┘         └────────────────────────┘      │
@@ -120,13 +85,13 @@ Symbol references support:
                                     │
                                     ▼
                           ┌──────────────────┐
-                          │ docpin record │
+                          │  docpin record   │
                           └────────┬─────────┘
                                    │ hashes lines 10-15
                                    ▼
                      ┌──────────────────────────────────┐
                      │  docs/auth.md (updated in-place) │
-                     │  [pin:src/auth.py:10-15 @a1b2]  │
+                     │  [pin:src/auth.py:10-15 @a1b2]   │
                      └──────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -139,8 +104,8 @@ Symbol references support:
 │   + token = generate_secure_token()                                 │
 │                                                                     │
 │    ┌──────────────────┐     ┌─────────────────────────────────────┐ │
-│    │ docpin check  │────▶│ ⚠ Stale: docs/auth.md:5            │ │
-│    └──────────────────┘     │   [pin:src/auth.py:10-15]         │ │
+│    │   docpin check   ├────▶│ ⚠ Stale: docs/auth.md:5             │ │
+│    └──────────────────┘     │   [pin:src/auth.py:10-15]           │ │
 │              │              │   Exit code: 1                      │ │
 │              ▼              └─────────────────────────────────────┘ │
 │         CI fails ❌                                                 │
@@ -148,49 +113,21 @@ Symbol references support:
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## Integration
+## CI
 
-`docpin check` is a single command that exits non-zero on stale docs. Wire it in wherever you run other checks.
-
-**GitHub Actions:**
 ```yaml
-- name: Check documentation freshness
-  run: |
-    pip install docpin
-    docpin check
+- run: pip install docpin && docpin check
 ```
 
-**GitLab CI:**
-```yaml
-docs-check:
-  script:
-    - pip install docpin
-    - docpin check
-```
-
-**Makefile:**
-```makefile
-check-docs:
-	docpin check docs/
-```
-
-Pass a path to scope the check (e.g. `docpin check docs/`) if you only want to scan part of the repo.
+Pass a path to scope the check: `docpin check docs/`.
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `docpin record` | Scan docs and record hashes of referenced code inline |
-| `docpin check` | Compare current code against recorded hashes |
+| `docpin record` | Scan docs and write content hashes inline |
+| `docpin check`  | Compare current code against recorded hashes; exit 1 on drift |
 | `docpin status` | Show status of all tracked references |
-
-## Why docpin?
-
-- **Zero source code changes** - References live in your docs, not your code
-- **No extra files** - Hashes are stored inline in your markdown
-- **Simple syntax** - Just `[pin:file:lines]` in Markdown
-- **CI/CD ready** - Exit code 1 on stale docs
-- **Lightweight** - No dependencies, pure Python
 
 ## License
 
