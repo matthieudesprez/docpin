@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1](https://github.com/matthieudesprez/docpin/compare/v1.0.0...v1.0.1) (2026-05-12)
+
+
+### Documentation
+
+* add Architecture section with dogfooded pin references ([7f52428](https://github.com/matthieudesprez/docpin/commit/7f52428459ab22e927a30044e8032b01e2d0867e))
+* tighten README and fix ASCII diagram alignment ([a5cb138](https://github.com/matthieudesprez/docpin/commit/a5cb13843cacbe9a385877564acbf2fa3fa5c64c))
+
 ## [1.0.0](https://github.com/matthieudesprez/docpin/compare/v0.3.0...v1.0.0) (2026-05-08)
 
 
