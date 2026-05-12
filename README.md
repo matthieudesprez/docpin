@@ -129,6 +129,18 @@ Pass a path to scope the check: `docpin check docs/`.
 | `docpin check`  | Compare current code against recorded hashes; exit 1 on drift |
 | `docpin status` | Show status of all tracked references |
 
+## Architecture
+
+Five modules, zero runtime dependencies:
+
+- **scanner** ([pin:docpin/scanner.py#parse_markdown @4e1c5f24618d9bef]) finds `[pin:...]` matches in Markdown and rewrites files in place when recording. Code-fence and inline-code aware, so syntax examples in the docs aren't picked up as real pins.
+- **resolver** ([pin:docpin/resolver.py#resolve_reference @0232518acb7b5a9a]) turns a reference into code content. Whole files, lines, ranges, and Python symbols (functions, classes, methods, top-level variables) via `ast`.
+- **hasher** ([pin:docpin/hasher.py#normalize_content @f0558f36e0ab42ab]) hashes with SHA-256 after trimming trailing whitespace and collapsing blank-line runs, so formatter passes don't trigger false drift.
+- **manifest** ([pin:docpin/manifest.py#record_references @f4ef33cc2d363911]) orchestrates `record` and `check`, bucketing results into stale / broken / unrecorded.
+- **cli** ([pin:docpin/cli.py#main @51bf44fd70f393ca]) wires `record`, `check`, `status` into an argparse front-end.
+
+The references above are real pins. docpin dogfoods itself: rename one of those functions and `docpin check` will flag this section.
+
 ## License
 
 MIT
